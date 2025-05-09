@@ -13,8 +13,13 @@ export class Floor {
     private _countdownInterval: number | null = null;  // Interval ID for countdown updates
     private _eventHandlers: { [key: string]: EventHandler[] } = {};  // Event handlers
     private _countdownValue: number = 0;  // Current countdown value in tenths of seconds
+    private _audio: HTMLAudioElement;
 
-    constructor(public readonly number: number) { }
+    constructor(public readonly number: number) {
+        this._audio = new Audio('assets/ding.mp3');
+        // Preload the audio file
+        this._audio.load();
+    }
 
     /**
      * Checks if an elevator is currently at this floor
@@ -30,6 +35,7 @@ export class Floor {
         this._hasElevator = value;
         if (value) {
             this.stopCountdown();
+            this._audio.play().catch(err => console.error('Error playing sound:', err));
         }
     }
 
