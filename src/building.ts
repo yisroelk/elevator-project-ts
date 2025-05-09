@@ -89,6 +89,9 @@ export class Building {
 
         if (selectedElevator) {
             this.floors[floorNumber].pressButton();
+            // Subtract stop delay from countdown since we don't want to include the waiting time
+            const countdownTime = Math.max(0, bestScore - (this.settings.stopDelay * 1000));
+            this.floors[floorNumber].startCountdown(countdownTime);
             selectedElevator.assignFloor(floorNumber);
             selectedElevator.move(
                 () => this.handleElevatorArrival(selectedElevator)

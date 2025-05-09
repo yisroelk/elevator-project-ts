@@ -52,6 +52,15 @@ function createStyles() {
         .floor-number {
             font-size: 18px;
             font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .countdown {
+            font-size: 14px;
+            color: #666;
+            min-width: 80px;
         }
     `;
     document.head.appendChild(style);
@@ -79,10 +88,30 @@ function createUI(building: Building) {
         const floorDiv = document.createElement('div');
         floorDiv.className = 'floor';
 
+        // Create floor info container
+        const floorInfo = document.createElement('span');
+        floorInfo.className = 'floor-number';
+
         // Create floor number display
         const floorNumber = document.createElement('span');
-        floorNumber.className = 'floor-number';
         floorNumber.textContent = `Floor ${floor.number}`;
+
+        // Create countdown display
+        const countdown = document.createElement('span');
+        countdown.className = 'countdown';
+        countdown.textContent = '';
+
+        // Add event listener for countdown updates
+        floor.on('countdown', (timeLeft: number) => {
+            if (timeLeft > 0) {
+                countdown.textContent = `(${timeLeft.toFixed(1)}s)`;
+            } else {
+                countdown.textContent = '';
+            }
+        });
+
+        floorInfo.appendChild(floorNumber);
+        floorInfo.appendChild(countdown);
 
         // Create and configure elevator call button
         const button = document.createElement('button');
@@ -98,7 +127,7 @@ function createUI(building: Building) {
             building.requestElevator(floor.number);
         };
 
-        floorDiv.appendChild(floorNumber);
+        floorDiv.appendChild(floorInfo);
         floorDiv.appendChild(button);
         buildingDiv.appendChild(floorDiv);
     }
