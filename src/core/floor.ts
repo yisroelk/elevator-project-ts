@@ -1,22 +1,24 @@
+import { EventEmitter } from '../utils/EventEmitter.js';
+
 /**
  * Type definition for event handlers
  */
-type EventHandler = (timeLeft: number) => void;
+type EventHandler<T = number> = (value: T) => void;
 
 /**
  * Represents a floor in the building
  * Manages floor state including button press status and elevator presence
  */
-export class Floor {
+export class Floor extends EventEmitter {
     private _elevatorCount: number = 0;      // Tracks number of elevators currently at this floor
     private _isButtonPressed: boolean = false;   // Tracks if the call button is currently pressed
     private _countdownInterval: number | null = null;  // Interval ID for countdown updates
-    private _eventHandlers: { [key: string]: EventHandler[] } = {};  // Event handlers
     private _countdownValue: number = 0;  // Current countdown value in tenths of seconds
     private _audio: HTMLAudioElement;
 
     constructor(public readonly number: number) {
-        this._audio = new Audio('assets/ding.mp3');
+        super();
+        this._audio = new Audio('/assets/ding.mp3');
         // Preload the audio file
         this._audio.load();
     }
@@ -34,13 +36,10 @@ export class Floor {
     set hasElevator(value: boolean) {
         if (value) {
             this._elevatorCount++;
-        } else {
-            this._elevatorCount = Math.max(0, this._elevatorCount - 1);
-        }
-
-        if (value) {
             this.stopCountdown();
             this._audio.play().catch(err => console.error('Error playing sound:', err));
+        } else {
+            this._elevatorCount = Math.max(0, this._elevatorCount - 1);
         }
     }
 
@@ -69,27 +68,7 @@ export class Floor {
      * Determines if the floor's call button should be disabled
      */
     get shouldButtonBeDisabled(): boolean {
-        return this._isButtonPressed || this.hasElevator;
-    }
-
-    /**
-     * Add an event handler for the specified event
-     */
-    on(event: string, handler: EventHandler) {
-        if (!this._eventHandlers[event]) {
-            this._eventHandlers[event] = [];
-        }
-        this._eventHandlers[event].push(handler);
-    }
-
-    /**
-     * Emit an event with the given value
-     */
-    private emit(event: string, value: number) {
-        const handlers = this._eventHandlers[event];
-        if (handlers) {
-            handlers.forEach(handler => handler(value));
-        }
+        return this._isButtonPressed || this._elevatorCount > 0;
     }
 
     /**
@@ -97,12 +76,17 @@ export class Floor {
      */
     startCountdown(totalTime: number) {
         this.stopCountdown();
-        this._countdownValue = Math.max(0, totalTime / 1000); // Convert milliseconds to seconds
-        console.log('Starting countdown for floor', this.number, 'with time', this._countdownValue);
+        this._countdownValue = Math.max(0, Math.round(totalTime) / 1000); // Convert milliseconds to seconds
 
+        // Use performance.now() for more accurate timing
+        const startTime = performance.now();
         const updateInterval = 100; // Update every 100ms
+
         this._countdownInterval = window.setInterval(() => {
-            this._countdownValue = Math.max(0, this._countdownValue - 0.1);
+            const elapsedTime = (performance.now() - startTime) / 1000;
+            this._countdownValue = Math.max(0, (totalTime / 1000) - elapsedTime);
+
+            // Emit with 1 decimal place precision
             this.emit('countdown', parseFloat(this._countdownValue.toFixed(1)));
 
             if (this._countdownValue <= 0) {
@@ -138,14 +122,12 @@ export class Floor {
         this.stopCountdown();
     }
 
+
     /**
      * Handles elevator departure from this floor
      */
     elevatorLeft(): void {
-        this._elevatorCount = 0;
-        if (!this._isButtonPressed) {
-            return;
-        }
-        this._isButtonPressed = false;
+        console.log(this.elevatorCount)
+        this.hasElevator = false;
     }
 }

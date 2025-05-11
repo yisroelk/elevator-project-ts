@@ -1,44 +1,19 @@
-import { Elevator } from './elevator';
-import { Floor } from './floor';
-
-/**
- * Configuration interface for building parameters
- */
-export interface BuildingSettings {
-    numberOfBuildings: number;   // Total number of buildings in the simulation
-    numberOfFloors: number;      // Total number of floors in each building
-    numberOfElevators: number;   // Total number of elevators serving each building
-    floorHeight: number;         // Height of each floor in pixels
-    movementSpeed: number;       // Time in seconds for elevator to move between floors
-    stopDelay: number;          // Time in seconds elevator waits at each stop
-    floorPassingTime: number;    // Time in seconds to pass each floor during movement
-}
-
-/**
- * Default configuration values for the building
- */
-export const DefaultSettings: BuildingSettings = {
-    numberOfBuildings: 1,
-    numberOfFloors: 10,
-    numberOfElevators: 2,
-    floorHeight: 100,
-    movementSpeed: 1,
-    stopDelay: 2,
-    floorPassingTime: 0.5
-};
+import { Elevator } from './elevator.js';
+import { Floor } from './floor.js';
+import { BuildingSettings } from '../types/BuildingSettings.js';
+import { EventEmitter } from '../utils/EventEmitter.js';
 
 /**
  * Represents the building and manages elevator operations
  * Coordinates between floors and elevators to handle transportation requests
  */
-export class Building {
+export class Building extends EventEmitter {
     private elevators: Elevator[] = [];           // Collection of all elevators in the building
     private floors: Floor[] = [];                 // Collection of all floors in the building
     private settings: BuildingSettings;           // Building configuration parameters
-    onElevatorArrival: ((floor: number) => void) | undefined;    // Callback for elevator arrival events
-    onElevatorLeft: ((floor: number) => void) | undefined;       // Callback for elevator departure events
 
     constructor(settings: BuildingSettings) {
+        super();
         this.settings = settings;
     }
 
@@ -47,6 +22,8 @@ export class Building {
      */
     addElevator(elevator: Elevator) {
         this.elevators.push(elevator);
+        elevator.on('arrival', () => this.handleElevatorArrival(elevator));
+        elevator.on('move', () => this.handleElevatorMove(elevator));
     }
 
     /**
@@ -90,14 +67,33 @@ export class Building {
         }
 
         if (selectedElevator) {
-            this.floors[floorNumber].pressButton();
-            // Subtract stop delay from countdown since we don't want to include the waiting time
-            const countdownTime = Math.max(0, bestScore - (this.settings.stopDelay * 1000));
-            this.floors[floorNumber].startCountdown(countdownTime);
+            const floor = this.floors[floorNumber];
+            floor.pressButton();
+
+            // Calculate accurate countdown time including movement
+            const floorsToMove = Math.abs(selectedElevator.currentFloor - floorNumber);
+            const movementTime = floorsToMove * this.settings.floorPassingTime * 1000;
+            const totalTime = bestScore;
+
+            floor.startCountdown(totalTime);
             selectedElevator.assignFloor(floorNumber);
-            selectedElevator.move(
-                () => this.handleElevatorArrival(selectedElevator)
-            );
+            selectedElevator.move();
+            console.log(this.floors);
+        }
+    }
+
+    /**
+     * Handles elevator movement events
+     * Updates floor status and triggers movement callbacks
+     * @param elevator - The elevator that is moving
+     */
+    private handleElevatorMove(elevator: Elevator) {
+        console.log('Elevator moving', elevator.currentFloor, elevator.previousFloor);
+        if (elevator.previousFloor !== null) {
+            // First, handle the departure from the previous floor
+            const previousFloor = this.floors[elevator.previousFloor];
+            previousFloor.elevatorLeft();  // Use elevatorLeft instead of hasElevator = false
+            this.emit('elevatorLeft', elevator.previousFloor);
         }
     }
 
@@ -108,24 +104,14 @@ export class Building {
      * @param elevator - The elevator that has arrived
      */
     private handleElevatorArrival(elevator: Elevator) {
-        console.log(this.elevators);
-        console.log(this.floors)
-        if (elevator.previousFloor !== null) {
-            this.floors[elevator.previousFloor].hasElevator = false;
-            if (this.onElevatorLeft) {
-                this.onElevatorLeft(elevator.previousFloor);
-            }
-        }
 
-        this.floors[elevator.currentFloor].hasElevator = true;
+        // handle arrival at the current floor
+        const currentFloor = this.floors[elevator.currentFloor];
+        currentFloor.hasElevator = true;
 
         setTimeout(() => {
-            console.log('----------')
-            console.log('Elevator arrived at floor', elevator.currentFloor);
-            this.floors[elevator.currentFloor].resetButton();
-            if (this.onElevatorArrival) {
-                this.onElevatorArrival(elevator.currentFloor);
-            }
+            currentFloor.resetButton();
+            this.emit('elevatorArrived', elevator.currentFloor);
         }, this.settings.stopDelay * 1000);
     }
 

@@ -1,7 +1,10 @@
-import { Building, BuildingSettings } from './building.js';
+import { Building } from './building.js';
 import { Elevator } from './elevator.js';
 import { Floor } from './floor.js';
-import { SettingsManager } from './settings.js';
+import { BuildingSettings } from '../types/BuildingSettings.js';
+import { SettingsManager } from './SettingsManager.js';
+import { DomUtils } from '../utils/DomUtils.js';
+import { ELEVATOR_SETTINGS } from '../constants/settings.js';
 
 /**
  * Factory class responsible for creating and configuring building instances
@@ -23,13 +26,7 @@ export class BuildingFactory {
      */
     createBuildings(): Building[] {
         const settings = this.settingsManager.getSettings();
-        const buildings: Building[] = [];
-
-        for (let i = 0; i < settings.numberOfBuildings; i++) {
-            buildings.push(this.createBuilding(i));
-        }
-
-        return buildings;
+        return Array.from({ length: settings.numberOfBuildings }, (_, i) => this.createBuilding(i));
     }
 
     /**
@@ -41,28 +38,24 @@ export class BuildingFactory {
         const settings = this.settingsManager.getSettings();
         const building = new Building(settings);
 
-        // Create elevators with DOM elements and add them to building
-        for (let i = 0; i < settings.numberOfElevators; i++) {
-            const elevatorElement = document.createElement('div');
-            elevatorElement.className = 'elevator';
-            const elevator = new Elevator(i, elevatorElement, settings);
+        // Create elevators
+        Array.from({ length: settings.numberOfElevators }, (_, i) => {
+            const elevatorElement = DomUtils.createElement('div', 'elevator');
+            const elevator = new Elevator(i, elevatorElement, ELEVATOR_SETTINGS);
             building.addElevator(elevator);
-        }
+        });
 
-        // Create and initialize all floors
-        for (let i = 0; i < settings.numberOfFloors; i++) {
+        // Create floors
+        Array.from({ length: settings.numberOfFloors }, (_, i) => {
             const floor = new Floor(i);
-
-            // Set initial state for ground floor (floor 0)
-            if (i === 0) {
-                // Call hasElevator setter multiple times to set the correct count
-                for (let j = 0; j < settings.numberOfElevators; j++) {
+            if (i === 0) {  // Place elevators on ground floor (floor 0)
+                // Set initial state for ground floor
+                Array(settings.numberOfElevators).fill(null).forEach(() => {
                     floor.hasElevator = true;
-                }
+                });
             }
-
             building.addFloor(floor);
-        }
+        });
 
         return building;
     }

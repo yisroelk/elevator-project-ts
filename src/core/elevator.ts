@@ -1,30 +1,13 @@
-import { Floor } from './floor';
-
-/**
- * Interface defining settings for elevator behavior and movement
- */
-export interface ElevatorSettings {
-    floorHeight: number;  // Height of each floor in pixels
-    movementSpeed: number;  // Time to move between floors in seconds
-    stopDelay: number;  // Time to wait at each floor in seconds
-    floorPassingTime: number;  // Time to pass each floor in seconds
-}
-
-/**
- * Default settings for elevator behavior
- */
-export const Settings: ElevatorSettings = {
-    floorHeight: 100,
-    movementSpeed: 1,
-    stopDelay: 2,
-    floorPassingTime: 0.5
-};
+import { ElevatorSettings } from '../types/ElevatorSettings.js';
+import { DomUtils } from '../utils/DomUtils.js';
+import { EventEmitter } from '../utils/EventEmitter.js';
+import { ELEVATOR_SETTINGS } from '../constants/settings.js';
 
 /**
  * Represents an elevator in the building
  * Handles movement, scheduling, and time estimation for elevator operations
  */
-export class Elevator {
+export class Elevator extends EventEmitter {
     id: number;                                    // Unique identifier for the elevator
     currentFloor: number = 0;                      // Current floor position
     targetFloors: number[] = [];                   // Queue of floors to visit
@@ -36,7 +19,8 @@ export class Elevator {
     currentDestination: number | null = null;
     previousFloor: number | null = null; // Previous floor
 
-    constructor(id: number, element: HTMLElement, settings: ElevatorSettings = Settings) {
+    constructor(id: number, element: HTMLElement, settings: ElevatorSettings = ELEVATOR_SETTINGS) {
+        super();
         this.id = id;
         this.element = element;
         this.settings = settings;
@@ -101,9 +85,9 @@ export class Elevator {
 
     /**
      * Initiates elevator movement to the next target floor
-     * @param arrivalCallback - Called when elevator arrives at destination, receiving the elevator instance
+     * Emits 'arrival' event when elevator arrives at destination
      */
-    move(arrivalCallback: (elevator: Elevator) => void) {
+    move() {
         console.log('targetFloors', this.targetFloors);
         if (this.isMoving || this.targetFloors.length === 0) return;
 
@@ -114,7 +98,7 @@ export class Elevator {
                 this.estimatedCompletionTime = 0;
             }
             this.currentDestination = null;
-            arrivalCallback(this);
+            this.emit('arrival', this);
             return;
         }
 
@@ -128,22 +112,24 @@ export class Elevator {
 
         // Calculate position from bottom to top (invert the floor number since we want bottom-up)
         const floorPosition = nextFloor * this.settings.floorHeight;
-        
+
         // Update position with corrected calculation
         this.element.style.transition = `transform ${movementTime}s linear`;
         this.element.style.transform = `translateY(-${floorPosition}px)`;
         this.currentFloor = nextFloor;
 
+        this.emit('move', this);  // Changed from 'moving' to 'move'
+
         // Handle arrival at destination
         setTimeout(() => {
-            arrivalCallback(this);
+            this.emit('arrival', this);
 
             setTimeout(() => {
                 this.isMoving = false;
 
                 // If there are more floors in queue, continue to the next one
                 if (this.targetFloors.length > 0) {
-                    this.move(arrivalCallback);
+                    this.move();
                 } else {
                     this.estimatedCompletionTime = 0;
                     this.currentDestination = null;
