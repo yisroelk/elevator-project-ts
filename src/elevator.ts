@@ -125,7 +125,7 @@ export class Elevator {
         const distance = Math.abs(nextFloor - this.currentFloor);
         const movementTime = distance * this.settings.floorPassingTime;
 
-        // Update position
+        // Update position (removed title height offset since title is now outside)
         this.element.style.transition = `transform ${movementTime}s linear`;
         this.element.style.transform = `translateY(-${nextFloor * this.settings.floorHeight}px)`;
         this.currentFloor = nextFloor;
