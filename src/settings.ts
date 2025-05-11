@@ -1,1 +1,0 @@
-export { SettingsManager } from './core/SettingsManager';

@@ -1,6 +1,6 @@
 import { SettingsManager } from '../core/SettingsManager.js';
 import { DomUtils } from '../utils/DomUtils.js';
-import { CSS_CLASSES } from '../constants/settings.js';
+import { CSS_CLASSES } from '../constants/styles.js';
 
 /**
  * Creates the settings panel UI

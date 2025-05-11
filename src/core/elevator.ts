@@ -1,7 +1,6 @@
-import { ElevatorSettings } from '../types/ElevatorSettings.js';
-import { DomUtils } from '../utils/DomUtils.js';
+import { BuildingSettings } from '../types/BuildingSettings.js';
 import { EventEmitter } from '../utils/EventEmitter.js';
-import { ELEVATOR_SETTINGS } from '../constants/settings.js';
+import { BuildingEvents } from '../types/BuildingEvents.js';
 
 /**
  * Represents an elevator in the building
@@ -10,16 +9,16 @@ import { ELEVATOR_SETTINGS } from '../constants/settings.js';
 export class Elevator extends EventEmitter {
     id: number;                                    // Unique identifier for the elevator
     currentFloor: number = 0;                      // Current floor position
-    targetFloors: number[] = [];                   // Queue of floors to visit
-    isMoving: boolean = false;                     // Current movement state
-    lastIntendedFloor: number = 0;                // Last floor in current schedule
+    private targetFloors: number[] = [];                   // Queue of floors to visit
+    private isMoving: boolean = false;                     // Current movement state
+    private lastIntendedFloor: number = 0;                // Last floor in current schedule
     element: HTMLElement;                          // DOM element representing the elevator
-    settings: ElevatorSettings;                    // Configuration settings
-    estimatedCompletionTime: number = 0;          // Estimated time to complete all scheduled stops
+    private settings: BuildingSettings;                    // Configuration settings
+    private estimatedCompletionTime: number = 0;          // Estimated time to complete all scheduled stops
     currentDestination: number | null = null;
     previousFloor: number | null = null; // Previous floor
 
-    constructor(id: number, element: HTMLElement, settings: ElevatorSettings = ELEVATOR_SETTINGS) {
+    constructor(id: number, element: HTMLElement, settings: BuildingSettings) {
         super();
         this.id = id;
         this.element = element;
@@ -61,6 +60,12 @@ export class Elevator extends EventEmitter {
 
             this.targetFloors.push(floor);
             this.lastIntendedFloor = floor;
+
+            this.emit(BuildingEvents.ELEVATOR_REQUESTED, {
+                floor: floor,
+                elevator: this,
+                estimatedTime: additionalTime * 1000
+            });
         }
     }
 
@@ -88,11 +93,11 @@ export class Elevator extends EventEmitter {
      * Emits 'arrival' event when elevator arrives at destination
      */
     move() {
-        console.log('targetFloors', this.targetFloors);
         if (this.isMoving || this.targetFloors.length === 0) return;
 
         this.isMoving = true;
         const nextFloor = this.targetFloors.shift();
+
         if (nextFloor === undefined || nextFloor === this.currentFloor) {
             if (this.targetFloors.length === 0) {
                 this.estimatedCompletionTime = 0;
@@ -117,8 +122,7 @@ export class Elevator extends EventEmitter {
         this.element.style.transition = `transform ${movementTime}s linear`;
         this.element.style.transform = `translateY(-${floorPosition}px)`;
         this.currentFloor = nextFloor;
-
-        this.emit('move', this);  // Changed from 'moving' to 'move'
+        this.emit('move', this);
 
         // Handle arrival at destination
         setTimeout(() => {

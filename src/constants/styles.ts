@@ -1,3 +1,14 @@
+export const CSS_CLASSES = {
+    CONTAINER: 'container',
+    BUILDING: 'building',
+    FLOOR: 'floor',
+    ELEVATOR: 'elevator',
+    BUTTON: 'floor-button',
+    PRESSED: 'pressed',
+    SETTINGS_PANEL: 'settings-panel',
+    VISIBLE: 'visible'
+};
+
 export const STYLES = `
     .container {
         display: flex;

@@ -1,9 +1,5 @@
 import { EventEmitter } from '../utils/EventEmitter.js';
-
-/**
- * Type definition for event handlers
- */
-type EventHandler<T = number> = (value: T) => void;
+import { BuildingEvents } from '../types/BuildingEvents.js';
 
 /**
  * Represents a floor in the building
@@ -38,8 +34,10 @@ export class Floor extends EventEmitter {
             this._elevatorCount++;
             this.stopCountdown();
             this._audio.play().catch(err => console.error('Error playing sound:', err));
+            this.emit(BuildingEvents.FLOOR_UPDATED, this);
         } else {
             this._elevatorCount = Math.max(0, this._elevatorCount - 1);
+            this.emit(BuildingEvents.FLOOR_UPDATED, this);
         }
     }
 
@@ -86,8 +84,10 @@ export class Floor extends EventEmitter {
             const elapsedTime = (performance.now() - startTime) / 1000;
             this._countdownValue = Math.max(0, (totalTime / 1000) - elapsedTime);
 
-            // Emit with 1 decimal place precision
-            this.emit('countdown', parseFloat(this._countdownValue.toFixed(1)));
+            this.emit(BuildingEvents.COUNTDOWN_CHANGED, {
+                floor: this.number,
+                timeLeft: parseFloat(this._countdownValue.toFixed(1))
+            });
 
             if (this._countdownValue <= 0) {
                 this.stopCountdown();
@@ -103,7 +103,10 @@ export class Floor extends EventEmitter {
             clearInterval(this._countdownInterval);
             this._countdownInterval = null;
             this._countdownValue = 0;
-            this.emit('countdown', 0);
+            this.emit(BuildingEvents.COUNTDOWN_CHANGED, {
+                floor: this.number,
+                timeLeft: 0
+            });
         }
     }
 
@@ -112,6 +115,7 @@ export class Floor extends EventEmitter {
      */
     pressButton(): void {
         this._isButtonPressed = true;
+        this.emit(BuildingEvents.FLOOR_UPDATED, this);
     }
 
     /**
@@ -120,6 +124,7 @@ export class Floor extends EventEmitter {
     resetButton(): void {
         this._isButtonPressed = false;
         this.stopCountdown();
+        this.emit(BuildingEvents.FLOOR_UPDATED, this);
     }
 
 
@@ -127,7 +132,6 @@ export class Floor extends EventEmitter {
      * Handles elevator departure from this floor
      */
     elevatorLeft(): void {
-        console.log(this.elevatorCount)
         this.hasElevator = false;
     }
 }

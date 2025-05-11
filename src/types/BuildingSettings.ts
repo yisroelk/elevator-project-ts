@@ -1,10 +1,13 @@
 /**
- * Configuration interface for building parameters
+ * Configuration interface for building and elevator parameters
  */
 export interface BuildingSettings {
+    // Building-specific settings
     numberOfBuildings: number;   // Total number of buildings in the simulation
     numberOfFloors: number;      // Total number of floors in each building
     numberOfElevators: number;   // Total number of elevators serving each building
+
+    // Elevator movement settings
     floorHeight: number;         // Height of each floor in pixels
     movementSpeed: number;       // Time in seconds for elevator to move between floors
     stopDelay: number;          // Time in seconds elevator waits at each stop

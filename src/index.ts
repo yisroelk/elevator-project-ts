@@ -3,7 +3,9 @@ import { BuildingFactory } from './core/buildingFactory.js';
 import { DomUtils } from './utils/DomUtils.js';
 import { createSettingsPanel } from './components/settingsPanel.js';
 import { createStyles } from './styles.js';
-import { CSS_CLASSES } from './constants/settings.js';
+import { CSS_CLASSES } from './constants/styles.js';
+import { BuildingEvents } from './types/BuildingEvents.js';
+import { Floor } from './core/floor.js';
 
 /**
  * Reinitializes all buildings with current settings
@@ -12,6 +14,16 @@ function reinitializeBuilding() {
     const factory = new BuildingFactory();
     const buildings = factory.createBuildings();
     createUI(buildings);
+}
+
+function updateFloorUI(floorDiv: HTMLElement, floor: Floor) {
+    const button = floorDiv.querySelector(
+        `button.${CSS_CLASSES.BUTTON}`
+    ) as HTMLButtonElement;
+    if (!button) return;
+
+    button.disabled = floor.shouldButtonBeDisabled;
+    button.classList.toggle(CSS_CLASSES.PRESSED, floor.isButtonPressed);
 }
 
 /**
@@ -48,7 +60,6 @@ function createUI(buildings: Building[]) {
         const elevatorContainer = DomUtils.createElement('div', 'elevator-container');
         DomUtils.setStyles(elevatorContainer, { height: `${totalHeight}px` });
 
-        // Get floors but don't modify the original array
         const floorsToDisplay = [...building.getFloors()].reverse();
 
         floorsToDisplay.forEach((floor, displayIndex) => {
@@ -58,18 +69,12 @@ function createUI(buildings: Building[]) {
             floorNumber.textContent = `Floor ${floor.number}`;
             const countdown = DomUtils.createElement('span', 'countdown');
 
-            // Store both display index and actual floor number
             floorDiv.dataset.displayIndex = displayIndex.toString();
             floorDiv.dataset.floorNumber = floor.number.toString();
 
-            // Update countdown display handling for correct floor order
-            floor.on('countdown', (timeLeft: number) => {
-                const targetFloorDiv = buildingDiv.querySelector(
-                    `div.floor[data-floor-number="${floor.number}"] .countdown`
-                ) as HTMLElement | null;
-
-                if (targetFloorDiv) {
-                    targetFloorDiv.textContent = timeLeft > 0 ? `(${timeLeft.toFixed(1)}s)` : '';
+            floor.on(BuildingEvents.COUNTDOWN_CHANGED, (data) => {
+                if (countdown) {
+                    countdown.textContent = data.timeLeft > 0 ? `(${data.timeLeft.toFixed(1)}s)` : '';
                 }
             });
 
@@ -77,11 +82,10 @@ function createUI(buildings: Building[]) {
 
             const button = DomUtils.createElement('button', CSS_CLASSES.BUTTON);
             button.textContent = `${floor.number}`;
-            if (floor.isButtonPressed) button.classList.add(CSS_CLASSES.PRESSED);
             button.disabled = floor.shouldButtonBeDisabled;
             button.onclick = () => {
-                button.classList.add(CSS_CLASSES.PRESSED);
                 button.disabled = true;
+                button.classList.add(CSS_CLASSES.PRESSED);
                 building.requestElevator(floor.number);
             };
 
@@ -98,46 +102,21 @@ function createUI(buildings: Building[]) {
         buildingContainer.appendChild(buildingWrapper);
         container.appendChild(buildingContainer);
 
-        building.on('elevatorArrived', (floor: number) => {
-            const floorObj = building.getFloors()[floor];
-            if (!floorObj) return;
-
+        // Subscribe to building events for UI updates
+        building.on(BuildingEvents.FLOOR_UPDATED, (floor) => {
             const floorDiv = buildingDiv.querySelector(
-                `div.floor[data-floor-number="${floor}"]`
+                `div.floor[data-floor-number="${floor.number}"]`
             );
-            if (!floorDiv) return;
-
-            const floorButton = floorDiv.querySelector(
-                `button.${CSS_CLASSES.BUTTON}`
-            ) as HTMLButtonElement | null;
-            if (!floorButton) return;
-
-            if (!floorObj.isButtonPressed) {
-                floorButton.classList.remove(CSS_CLASSES.PRESSED);
+            if (floorDiv) {
+                updateFloorUI(floorDiv as HTMLElement, floor);
             }
-            floorButton.disabled = floorObj.shouldButtonBeDisabled;
         });
 
-        building.on('elevatorLeft', (floor: number) => {
-            const floorObj = building.getFloors()[floor];
-            if (!floorObj) return;
-
-            const floorDiv = buildingDiv.querySelector(
-                `div.floor[data-floor-number="${floor}"]`
-            );
-            if (!floorDiv) return;
-
-            const floorButton = floorDiv.querySelector(
-                `button.${CSS_CLASSES.BUTTON}`
-            ) as HTMLButtonElement | null;
-            if (!floorButton) return;
-
-            const elevatorCountElem = floorDiv.querySelector('.elevator-count');
-            if (elevatorCountElem) {
-                elevatorCountElem.textContent = floorObj.elevatorCount > 0 ? `(${floorObj.elevatorCount} elevators)` : '';
-            }
-
-            floorButton.disabled = floorObj.shouldButtonBeDisabled;
+        building.on(BuildingEvents.ELEVATOR_REQUESTED, (data) => {
+            const floor = building.getFloors()[data.floor];
+            if (!floor) return;
+            floor.pressButton();
+            floor.startCountdown(data.estimatedTime);
         });
     });
 
