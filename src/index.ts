@@ -50,6 +50,12 @@ function createStyles() {
             flex: 0 1 auto;
         }
 
+        .building-wrapper {
+            display: flex;
+            gap: 20px;
+            align-items: flex-end;
+        }
+
         .floor {
             height: 100px;
             border-bottom: 1px solid #ccc;
@@ -60,15 +66,24 @@ function createStyles() {
             padding: 0 20px;
         }
         
+        .elevator-container {
+            display: flex;
+            gap: 10px;
+            height: 100%;
+            position: relative;
+            min-width: 200px;
+        }
+
         .elevator {
             position: absolute;
-            left: 50px;
-            bottom: 0;
             width: 60px;
             height: 90px;
-            background-color: #666;
-            border: 2px solid #333;
+            background-image: url('assets/elv.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
             transition: transform 1s linear;
+            bottom: 0;
         }
         
         .floor-button {
@@ -267,41 +282,45 @@ function createUI(buildings: Building[]) {
         const buildingContainer = document.createElement('div');
         buildingContainer.className = 'building-container';
 
-        // Add building title outside the building
+        // Add building title
         const buildingTitle = document.createElement('h2');
         buildingTitle.textContent = `Building ${buildingIndex + 1}`;
         buildingTitle.className = 'building-title';
         buildingContainer.appendChild(buildingTitle);
 
+        // Create wrapper for building and elevators
+        const buildingWrapper = document.createElement('div');
+        buildingWrapper.className = 'building-wrapper';
+
         // Create building div
         const buildingDiv = document.createElement('div');
         buildingDiv.className = 'building';
         buildingDiv.dataset.buildingId = buildingIndex.toString();
-        // Calculate height based on floors and borders
         const totalHeight = (settings.floorHeight * settings.numberOfFloors) + (settings.numberOfFloors - 1);
         buildingDiv.style.height = `${totalHeight}px`;
 
-        // Create floors (in reverse order so ground floor is at bottom)
+        // Create elevator container
+        const elevatorContainer = document.createElement('div');
+        elevatorContainer.className = 'elevator-container';
+        elevatorContainer.style.height = `${totalHeight}px`;
+
+        // Create floors
         const floors = building.getFloors();
         for (let i = floors.length - 1; i >= 0; i--) {
             const floor = floors[i];
             const floorDiv = document.createElement('div');
             floorDiv.className = 'floor';
 
-            // Create floor info container
             const floorInfo = document.createElement('span');
             floorInfo.className = 'floor-number';
 
-            // Create floor number display
             const floorNumber = document.createElement('span');
             floorNumber.textContent = `Floor ${floor.number}`;
 
-            // Create countdown display
             const countdown = document.createElement('span');
             countdown.className = 'countdown';
             countdown.textContent = '';
 
-            // Add event listener for countdown updates
             floor.on('countdown', (timeLeft: number) => {
                 if (timeLeft > 0) {
                     countdown.textContent = `(${timeLeft.toFixed(1)}s)`;
@@ -313,7 +332,6 @@ function createUI(buildings: Building[]) {
             floorInfo.appendChild(floorNumber);
             floorInfo.appendChild(countdown);
 
-            // Create and configure elevator call button
             const button = document.createElement('button');
             button.className = 'floor-button';
             button.textContent = 'Call Elevator';
@@ -332,12 +350,18 @@ function createUI(buildings: Building[]) {
             buildingDiv.appendChild(floorDiv);
         }
 
-        // Add elevator elements to the UI
+        // Add elevator elements to the elevator container
         const elevators = building.getElevators();
         elevators.forEach((elevator: Elevator, index: number) => {
-            elevator.element.style.left = `${50 + (index * 80)}px`;
-            buildingDiv.appendChild(elevator.element);
+            elevator.element.style.left = `${index * 70}px`;
+            elevatorContainer.appendChild(elevator.element);
         });
+
+        // Assemble the building wrapper
+        buildingWrapper.appendChild(buildingDiv);
+        buildingWrapper.appendChild(elevatorContainer);
+        buildingContainer.appendChild(buildingWrapper);
+        container.appendChild(buildingContainer);
 
         // Set up elevator arrival handler
         building.onElevatorArrival = (floor: number) => {
@@ -347,9 +371,8 @@ function createUI(buildings: Building[]) {
                 return;
             }
 
-            // Find and update the floor's button
             const floorButton = buildingDiv.querySelector(
-                `div.floor:nth-child(${floors.length - floor + 1}) button.floor-button`
+                `div.floor:nth-child(${floors.length - floor}) button.floor-button`
             ) as HTMLButtonElement | null;
 
             if (!floorButton) {
@@ -357,7 +380,6 @@ function createUI(buildings: Building[]) {
                 return;
             }
 
-            // Update button state based on floor status
             if (!floorObj.isButtonPressed) {
                 floorButton.classList.remove('pressed');
             }
@@ -372,9 +394,8 @@ function createUI(buildings: Building[]) {
                 return;
             }
 
-            // Find and update the floor's button
             const floorButton = buildingDiv.querySelector(
-                `div.floor:nth-child(${floors.length - floor + 1}) button.floor-button`
+                `div.floor:nth-child(${floors.length - floor}) button.floor-button`
             ) as HTMLButtonElement | null;
 
             if (!floorButton) {
@@ -382,12 +403,8 @@ function createUI(buildings: Building[]) {
                 return;
             }
 
-            // Update button state when elevator departs
             floorButton.disabled = floorObj.shouldButtonBeDisabled;
         };
-
-        buildingContainer.appendChild(buildingDiv);
-        container.appendChild(buildingContainer);
     });
 
     // Create settings panel and add popup behavior

@@ -51,7 +51,11 @@ export class BuildingFactory {
 
         // Create and initialize all floors
         for (let i = 0; i < settings.numberOfFloors; i++) {
-            building.addFloor(new Floor(i));
+            const floor = new Floor(i);
+            if (i === 0) {
+                floor.hasElevator = true;
+            }
+            building.addFloor(floor);
         }
 
         return building;
