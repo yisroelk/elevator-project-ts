@@ -8,7 +8,7 @@ type EventHandler = (timeLeft: number) => void;
  * Manages floor state including button press status and elevator presence
  */
 export class Floor {
-    private _hasElevator: boolean = false;      // Tracks if an elevator is currently at this floor
+    private _elevatorCount: number = 0;      // Tracks number of elevators currently at this floor
     private _isButtonPressed: boolean = false;   // Tracks if the call button is currently pressed
     private _countdownInterval: number | null = null;  // Interval ID for countdown updates
     private _eventHandlers: { [key: string]: EventHandler[] } = {};  // Event handlers
@@ -22,21 +22,33 @@ export class Floor {
     }
 
     /**
-     * Checks if an elevator is currently at this floor
+     * Checks if any elevator is currently at this floor
      */
     get hasElevator(): boolean {
-        return this._hasElevator;
+        return this._elevatorCount > 0;
     }
 
     /**
      * Updates the elevator presence status for this floor
      */
     set hasElevator(value: boolean) {
-        this._hasElevator = value;
+        if (value) {
+            this._elevatorCount++;
+        } else {
+            this._elevatorCount = Math.max(0, this._elevatorCount - 1);
+        }
+
         if (value) {
             this.stopCountdown();
             this._audio.play().catch(err => console.error('Error playing sound:', err));
         }
+    }
+
+    /**
+     * Gets the current number of elevators on this floor
+     */
+    get elevatorCount(): number {
+        return this._elevatorCount;
     }
 
     /**
@@ -57,7 +69,7 @@ export class Floor {
      * Determines if the floor's call button should be disabled
      */
     get shouldButtonBeDisabled(): boolean {
-        return this._isButtonPressed || this._hasElevator;
+        return this._isButtonPressed || this.hasElevator;
     }
 
     /**
@@ -130,7 +142,7 @@ export class Floor {
      * Handles elevator departure from this floor
      */
     elevatorLeft(): void {
-        this._hasElevator = false;
+        this._elevatorCount = 0;
         if (!this._isButtonPressed) {
             return;
         }
