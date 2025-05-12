@@ -1,8 +1,9 @@
-import { Building } from './building.js';
-import { Elevator } from './elevator.js';
-import { Floor } from './floor.js';
-import { SettingsManager } from './SettingsManager.js';
-import { DomUtils } from '../utils/DomUtils.js';
+import { Building } from './building';
+import { Elevator } from './elevator';
+import { Floor } from './floor';
+import { SettingsManager } from './SettingsManager';
+import { DomUtils } from '../utils/DomUtils';
+import { CSS_CLASSES } from '../styles/classes';
 
 /**
  * Factory class responsible for creating and configuring building instances
@@ -38,7 +39,7 @@ export class BuildingFactory {
 
         // Create elevators
         Array.from({ length: settings.numberOfElevators }, (_, i) => {
-            const elevatorElement = DomUtils.createElement('div', 'elevator');
+            const elevatorElement = DomUtils.createElement('div', CSS_CLASSES.ELEVATOR);
             const elevator = new Elevator(i, elevatorElement, settings);
             building.addElevator(elevator);
         });

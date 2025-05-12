@@ -9,7 +9,6 @@ export interface BuildingSettings {
 
     // Elevator movement settings
     floorHeight: number;         // Height of each floor in pixels
-    movementSpeed: number;       // Time in seconds for elevator to move between floors
     stopDelay: number;          // Time in seconds elevator waits at each stop
     floorPassingTime: number;    // Time in seconds to pass each floor during movement
 }
@@ -21,8 +20,7 @@ export const DefaultSettings: BuildingSettings = {
     numberOfBuildings: 1,
     numberOfFloors: 10,
     numberOfElevators: 2,
-    floorHeight: 100,
-    movementSpeed: 1,
-    stopDelay: 2,
-    floorPassingTime: 0.5
+    floorHeight: 110,  // 110px total floor height (including 7px black bar)
+    stopDelay: 2.0,    // Seconds
+    floorPassingTime: 0.5  // Seconds per floor
 };

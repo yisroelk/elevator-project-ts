@@ -1,4 +1,4 @@
-import { BuildingSettings, DefaultSettings } from '../types/BuildingSettings.js';
+import { BuildingSettings, DefaultSettings } from '../types/BuildingSettings';
 
 export class SettingsManager {
     private static instance: SettingsManager;

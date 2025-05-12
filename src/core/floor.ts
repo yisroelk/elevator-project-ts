@@ -1,21 +1,31 @@
-import { EventEmitter } from '../utils/EventEmitter.js';
-import { BuildingEvents } from '../types/BuildingEvents.js';
+import { EventEmitter } from '../utils/EventEmitter';
+import { BuildingEvents } from '../types/BuildingEvents';
+import { BuildingEventMap } from '../types/BuildingTypes';
+
+interface FloorEventMap {
+    [BuildingEvents.COUNTDOWN_CHANGED]: BuildingEventMap[BuildingEvents.COUNTDOWN_CHANGED];
+    [BuildingEvents.FLOOR_UPDATED]: Floor;
+}
 
 /**
  * Represents a floor in the building
  * Manages floor state including button press status and elevator presence
  */
-export class Floor extends EventEmitter {
+export class Floor extends EventEmitter<FloorEventMap> {
     private _elevatorCount: number = 0;      // Tracks number of elevators currently at this floor
     private _isButtonPressed: boolean = false;   // Tracks if the call button is currently pressed
     private _countdownInterval: number | null = null;  // Interval ID for countdown updates
     private _countdownValue: number = 0;  // Current countdown value in tenths of seconds
-    private _audio: HTMLAudioElement;
+    private readonly _audio: HTMLAudioElement;
+    private readonly _audioLoaded: Promise<void>;
 
     constructor(public readonly number: number) {
         super();
         this._audio = new Audio('/assets/ding.mp3');
-        // Preload the audio file
+        // Create a promise to track audio loading
+        this._audioLoaded = new Promise((resolve) => {
+            this._audio.addEventListener('canplaythrough', () => resolve());
+        });
         this._audio.load();
     }
 
@@ -33,7 +43,10 @@ export class Floor extends EventEmitter {
         if (value) {
             this._elevatorCount++;
             this.stopCountdown();
-            this._audio.play().catch(err => console.error('Error playing sound:', err));
+            // Play sound only if audio is loaded
+            this._audioLoaded
+                .then(() => this._audio.play())
+                .catch(err => console.warn('Audio playback failed:', err));
             this.emit(BuildingEvents.FLOOR_UPDATED, this);
         } else {
             this._elevatorCount = Math.max(0, this._elevatorCount - 1);

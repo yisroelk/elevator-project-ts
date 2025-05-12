@@ -1,13 +1,6 @@
-import { Elevator } from '../core/elevator.js';
-import { Floor } from '../core/floor.js';
-
-export enum BuildingEvents {
-    ELEVATOR_REQUESTED = 'elevatorRequested',
-    ELEVATOR_ARRIVED = 'elevatorArrived',
-    ELEVATOR_LEFT = 'elevatorLeft',
-    FLOOR_UPDATED = 'floorUpdated',
-    COUNTDOWN_CHANGED = 'countdownChanged'
-}
+import { Elevator } from '../core/elevator';
+import { Floor } from '../core/floor';
+import { BuildingEvents } from './BuildingEvents';
 
 export interface BuildingEventMap {
     [BuildingEvents.ELEVATOR_REQUESTED]: {

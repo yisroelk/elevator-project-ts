@@ -1,11 +1,13 @@
-import { Building } from './core/building.js';
-import { BuildingFactory } from './core/buildingFactory.js';
-import { DomUtils } from './utils/DomUtils.js';
-import { createSettingsPanel } from './components/settingsPanel.js';
-import { createStyles } from './styles.js';
-import { CSS_CLASSES } from './constants/styles.js';
-import { BuildingEvents } from './types/BuildingEvents.js';
-import { Floor } from './core/floor.js';
+import { Building } from './core/building';
+import { BuildingFactory } from './core/buildingFactory';
+import { DomUtils } from './utils/DomUtils';
+import { createSettingsPanel } from './components/settingsPanel';
+import './styles/styles.css';
+import './styles/help.css';
+import './styles/main.css';
+import { CSS_CLASSES } from './styles/classes';
+import { BuildingEvents } from './types/BuildingEvents';
+import { Floor } from './core/floor';
 
 /**
  * Reinitializes all buildings with current settings
@@ -23,7 +25,7 @@ function updateFloorUI(floorDiv: HTMLElement, floor: Floor) {
     if (!button) return;
 
     button.disabled = floor.shouldButtonBeDisabled;
-    button.classList.toggle(CSS_CLASSES.PRESSED, floor.isButtonPressed);
+    button.classList.toggle('active', floor.isButtonPressed);
 }
 
 /**
@@ -43,31 +45,32 @@ function createUI(buildings: Building[]) {
 
     buildings.forEach((building, buildingIndex) => {
         const settings = building.getSettings();
+        // Set the floor height CSS variable
+        document.documentElement.style.setProperty('--floor-height', `${settings.floorHeight}px`);
 
-        const buildingContainer = DomUtils.createElement('div', 'building-container');
-        const buildingTitle = DomUtils.createElement('h2', 'building-title');
+        const buildingContainer = DomUtils.createElement('div', CSS_CLASSES.BUILDING_CONTAINER);
+        const buildingTitle = DomUtils.createElement('h2', CSS_CLASSES.BUILDING_TITLE);
         buildingTitle.textContent = `Building ${buildingIndex + 1}`;
         buildingContainer.appendChild(buildingTitle);
 
-        const buildingWrapper = DomUtils.createElement('div', 'building-wrapper');
+        const buildingWrapper = DomUtils.createElement('div', CSS_CLASSES.BUILDING_WRAPPER);
         const buildingDiv = DomUtils.createElement('div', CSS_CLASSES.BUILDING, {
             'data-building-id': buildingIndex.toString()
         });
 
-        const totalHeight = (settings.floorHeight * settings.numberOfFloors) + (settings.numberOfFloors - 1);
+        // Calculate total height (110px per floor)
+        const totalHeight = settings.floorHeight * settings.numberOfFloors;
         DomUtils.setStyles(buildingDiv, { height: `${totalHeight}px` });
 
-        const elevatorContainer = DomUtils.createElement('div', 'elevator-container');
+        const elevatorContainer = DomUtils.createElement('div', CSS_CLASSES.ELEVATOR_CONTAINER);
         DomUtils.setStyles(elevatorContainer, { height: `${totalHeight}px` });
 
         const floorsToDisplay = [...building.getFloors()].reverse();
 
         floorsToDisplay.forEach((floor, displayIndex) => {
             const floorDiv = DomUtils.createElement('div', CSS_CLASSES.FLOOR);
-            const floorInfo = DomUtils.createElement('span', 'floor-number');
-            const floorNumber = DomUtils.createElement('span');
-            floorNumber.textContent = `Floor ${floor.number}`;
-            const countdown = DomUtils.createElement('span', 'countdown');
+            const floorInfo = DomUtils.createElement('span', CSS_CLASSES.FLOOR_NUMBER);
+            const countdown = DomUtils.createElement('span', CSS_CLASSES.COUNTDOWN);
 
             floorDiv.dataset.displayIndex = displayIndex.toString();
             floorDiv.dataset.floorNumber = floor.number.toString();
@@ -78,14 +81,14 @@ function createUI(buildings: Building[]) {
                 }
             });
 
-            floorInfo.append(floorNumber, countdown);
+            floorInfo.append(countdown);
 
-            const button = DomUtils.createElement('button', CSS_CLASSES.BUTTON);
+            const button = DomUtils.createElement('button', `${CSS_CLASSES.BUTTON} metal linear`);
             button.textContent = `${floor.number}`;
             button.disabled = floor.shouldButtonBeDisabled;
             button.onclick = () => {
                 button.disabled = true;
-                button.classList.add(CSS_CLASSES.PRESSED);
+                button.classList.add('active');
                 building.requestElevator(floor.number);
             };
 
@@ -103,12 +106,14 @@ function createUI(buildings: Building[]) {
         container.appendChild(buildingContainer);
 
         // Subscribe to building events for UI updates
-        building.on(BuildingEvents.FLOOR_UPDATED, (floor) => {
+        building.on(BuildingEvents.FLOOR_UPDATED, (data) => {
+            // Handle both Floor object and resetButton event types
+            const floorNumber = 'type' in data ? data.floor : data.number;
             const floorDiv = buildingDiv.querySelector(
-                `div.floor[data-floor-number="${floor.number}"]`
+                `div.floor[data-floor-number="${floorNumber}"]`
             );
-            if (floorDiv) {
-                updateFloorUI(floorDiv as HTMLElement, floor);
+            if (floorDiv && !('type' in data)) {
+                updateFloorUI(floorDiv as HTMLElement, data);
             }
         });
 
@@ -128,7 +133,6 @@ function createUI(buildings: Building[]) {
  * Creates styles, building instance, and sets up the UI
  */
 function init() {
-    createStyles();
     reinitializeBuilding();
 }
 

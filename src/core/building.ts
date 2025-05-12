@@ -1,27 +1,51 @@
 import { Elevator } from './elevator.js';
 import { Floor } from './floor.js';
 import { BuildingSettings } from '../types/BuildingSettings.js';
-import { EventEmitter } from '../utils/EventEmitter.js';
-import { BuildingEvents } from '../types/BuildingEvents.js';
+import { EventEmitter } from '../utils/EventEmitter';
+import { BuildingEvents } from '../types/BuildingEvents';
+import { BuildingEventMap } from '../types/BuildingTypes';
+
+export class ValidationError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'ValidationError';
+    }
+}
 
 /**
  * Represents the building and manages elevator operations
  * Coordinates between floors and elevators to handle transportation requests
  */
-export class Building extends EventEmitter {
+export class Building extends EventEmitter<BuildingEventMap> {
     private elevators: Elevator[] = [];           // Collection of all elevators in the building
     private floors: Floor[] = [];                 // Collection of all floors in the building
-    private settings: BuildingSettings;           // Building configuration parameters
+    private readonly settings: BuildingSettings;           // Building configuration parameters
 
     constructor(settings: BuildingSettings) {
         super();
+        this.validateSettings(settings);
         this.settings = settings;
+    }
+
+    private validateSettings(settings: BuildingSettings): void {
+        if (settings.numberOfFloors < 2) {
+            throw new ValidationError('Building must have at least 2 floors');
+        }
+        if (settings.numberOfElevators < 1) {
+            throw new ValidationError('Building must have at least 1 elevator');
+        }
+        if (settings.floorHeight < 50) {
+            throw new ValidationError('Floor height must be at least 50 pixels');
+        }
     }
 
     /**
      * Adds a new elevator to the building's elevator system
      */
     addElevator(elevator: Elevator) {
+        if (this.elevators.length >= this.settings.numberOfElevators) {
+            throw new ValidationError('Maximum number of elevators reached');
+        }
         this.elevators.push(elevator);
         elevator.on('arrival', () => this.handleElevatorArrival(elevator));
         elevator.on('move', () => this.handleElevatorMove(elevator));
@@ -31,6 +55,9 @@ export class Building extends EventEmitter {
      * Adds a new floor to the building
      */
     addFloor(floor: Floor) {
+        if (this.floors.length >= this.settings.numberOfFloors) {
+            throw new ValidationError('Maximum number of floors reached');
+        }
         this.floors.push(floor);
     }
 
@@ -44,7 +71,7 @@ export class Building extends EventEmitter {
     private calculateElevatorScore(elevator: Elevator, requestedFloor: number): number {
         const remainingTime = elevator.getRemainingTime();
         const additionalTime = elevator.calculateAdditionalTime(requestedFloor);
-        return remainingTime + (additionalTime * 1000);
+        return remainingTime + (additionalTime * 1000); // Convert to milliseconds
     }
 
     /**
@@ -53,8 +80,10 @@ export class Building extends EventEmitter {
      * @param floorNumber - The floor requesting an elevator
      */
     requestElevator(floorNumber: number) {
+
         let selectedElevator: Elevator | null = null;
         let bestScore = Infinity;
+
 
         // Find the elevator that can service this request most efficiently
         for (const elevator of this.elevators) {
@@ -65,16 +94,19 @@ export class Building extends EventEmitter {
             }
         }
 
+
         if (selectedElevator) {
+            const displayTime = bestScore - (this.settings.stopDelay * 1000); // Remove stop delay from displayed time
             // Emit event before making changes
             this.emit(BuildingEvents.ELEVATOR_REQUESTED, {
                 floor: floorNumber,
                 elevator: selectedElevator,
-                estimatedTime: bestScore
+                estimatedTime: displayTime
             });
 
             selectedElevator.assignFloor(floorNumber);
             selectedElevator.move();
+
         }
     }
 
@@ -114,10 +146,13 @@ export class Building extends EventEmitter {
 
         this.emit(BuildingEvents.FLOOR_UPDATED, currentFloor);
 
-        setTimeout(() => {
-            currentFloor.resetButton();
-            this.emit(BuildingEvents.FLOOR_UPDATED, currentFloor);
-        }, this.settings.stopDelay * 1000);
+        elevator.on(BuildingEvents.FLOOR_UPDATED, (data) => {
+            if (data.type === 'resetButton') {
+                const floor = this.floors[data.floor];
+                floor.resetButton();
+                this.emit(BuildingEvents.FLOOR_UPDATED, floor);
+            }
+        });
     }
 
     /**
@@ -139,5 +174,17 @@ export class Building extends EventEmitter {
      */
     getFloors(): Floor[] {
         return this.floors;
+    }
+
+    /**
+     * Cleans up all resources used by the building and its components
+     */
+    dispose(): void {
+        // Clean up all elevators
+        this.elevators.forEach(elevator => elevator.dispose());
+        this.elevators = [];
+
+        // Clear all floors
+        this.floors = [];
     }
 }

@@ -4,10 +4,10 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc",
+    "build": "webpack",
     "serve": "lite-server",
     "start": "npm run build && npm run serve",
-    "dev": "tsc --watch"
+    "dev": "webpack --watch"
   },
   "keywords": [],
   "author": "",
@@ -15,8 +15,13 @@
   "description": "",
   "devDependencies": {
     "@types/node": "^22.15.16",
+    "css-loader": "^7.1.2",
     "lite-server": "^2.6.1",
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.5.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "webpack": "^5.99.8",
+    "webpack-cli": "^6.0.1"
   }
 }
