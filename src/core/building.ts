@@ -69,9 +69,7 @@ export class Building extends EventEmitter<BuildingEventMap> {
      * @returns Score based on estimated time to service the request
      */
     private calculateElevatorScore(elevator: Elevator, requestedFloor: number): number {
-        const remainingTime = elevator.getRemainingTime();
-        const additionalTime = elevator.calculateAdditionalTime(requestedFloor);
-        return remainingTime + (additionalTime * 1000); // Convert to milliseconds
+        return elevator.calculateAdditionalTime(requestedFloor);
     }
 
     /**
@@ -97,6 +95,7 @@ export class Building extends EventEmitter<BuildingEventMap> {
 
         if (selectedElevator) {
             const displayTime = bestScore - (this.settings.stopDelay * 1000); // Remove stop delay from displayed time
+
             // Emit event before making changes
             this.emit(BuildingEvents.ELEVATOR_REQUESTED, {
                 floor: floorNumber,
@@ -104,9 +103,8 @@ export class Building extends EventEmitter<BuildingEventMap> {
                 estimatedTime: displayTime
             });
 
+            // Assign floor after event emission
             selectedElevator.assignFloor(floorNumber);
-            selectedElevator.move();
-
         }
     }
 

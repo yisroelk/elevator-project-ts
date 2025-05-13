@@ -50,26 +50,35 @@ export class Elevator extends EventEmitter<ElevatorEventMap> {
     getRemainingTime(): number {
         if (this.estimatedCompletionTime === 0) return 0;
         const remainingTime = this.estimatedCompletionTime - Date.now();
+        console.log('Remaining time:', remainingTime);
         return Math.max(0, remainingTime);
     }
 
     /**
      * Calculates additional time needed to service a new floor request
      * @param newFloor - The floor number being requested
-     * @returns Time in seconds needed to service the new floor
+     * @returns Time in milliseconds needed to service the new floor
      */
-    calculateAdditionalTime(newFloor: number): number {
+    getTimeToNewFloor(newFloor: number): number {
         if (this.targetFloors.length === 0) {
             // If this is the first floor being added, calculate from current position
             const floorsToMove = Math.abs(newFloor - this.currentFloor);
-            return floorsToMove * this.settings.floorPassingTime + this.settings.stopDelay;
+            return (floorsToMove * this.settings.floorPassingTime + this.settings.stopDelay) * 1000; // Convert to milliseconds
         } else {
             // Calculate from the last floor in the current sequence
             const previousLastFloor = this.lastIntendedFloor;
             const floorsToMove = Math.abs(newFloor - previousLastFloor);
-            const remainingTimeInSeconds = this.getRemainingTime() / 1000; // Convert ms to seconds
-            return floorsToMove * this.settings.floorPassingTime + this.settings.stopDelay;
+            return (floorsToMove * this.settings.floorPassingTime + this.settings.stopDelay) * 1000; // Convert to milliseconds
         }
+    }
+
+    /**
+     * Calculates the total time needed to service a new floor request
+     * @param newFloor - The floor number being requested
+     * @returns Time in milliseconds needed to service the new floor
+     */
+    calculateAdditionalTime(newFloor: number): number {
+        return this.getRemainingTime() + this.getTimeToNewFloor(newFloor);
     }
 
     /**
@@ -78,23 +87,18 @@ export class Elevator extends EventEmitter<ElevatorEventMap> {
      */
     assignFloor(floor: number) {
         if (!this.targetFloors.includes(floor)) {
-            const additionalTime = this.calculateAdditionalTime(floor);
+            const additionalTime = this.getTimeToNewFloor(floor);
 
             // Update completion time estimates
             if (this.estimatedCompletionTime === 0) {
-                this.estimatedCompletionTime = Date.now() + (additionalTime * 1000);
+                this.estimatedCompletionTime = Date.now() + (additionalTime);
             } else {
-                this.estimatedCompletionTime += (additionalTime * 1000);
+                this.estimatedCompletionTime += (additionalTime);
             }
 
             this.targetFloors.push(floor);
             this.lastIntendedFloor = floor;
-
-            this.emit(BuildingEvents.ELEVATOR_REQUESTED, {
-                floor: floor,
-                elevator: this,
-                estimatedTime: additionalTime * 1000
-            });
+            this.move();
         }
     }
 
@@ -169,7 +173,7 @@ export class Elevator extends EventEmitter<ElevatorEventMap> {
                         this.currentDestination = null;
                     }
                 }
-            }, this.settings.stopDelay * 1000);
+            }, this.settings.stopDelay * 1000); // Convert to milliseconds
 
             this.timeouts.push(stopTimeout);
         };

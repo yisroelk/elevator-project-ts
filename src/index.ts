@@ -126,6 +126,12 @@ function createUI(buildings: Building[]) {
     });
 
     appDiv.append(overlay, settingsToggle, container, panel);
+
+    // Scroll to the bottom of the page after elements are added
+    window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: 'auto'
+    });
 }
 
 /**

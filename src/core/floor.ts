@@ -94,7 +94,7 @@ export class Floor extends EventEmitter<FloorEventMap> {
         const updateInterval = 100; // Update every 100ms
 
         this._countdownInterval = window.setInterval(() => {
-            const elapsedTime = (performance.now() - startTime) / 1000;
+            const elapsedTime = (performance.now() - startTime) / 1000; // Convert to seconds
             this._countdownValue = Math.max(0, (totalTime / 1000) - elapsedTime);
 
             this.emit(BuildingEvents.COUNTDOWN_CHANGED, {
