@@ -10,8 +10,10 @@ import { BuildingEventMap } from '../types/BuildingTypes';
 interface ElevatorEventMap {
     'arrival': Elevator;
     'move': Elevator;
+    'floor-passed': { floor: number };
     [BuildingEvents.ELEVATOR_REQUESTED]: BuildingEventMap[BuildingEvents.ELEVATOR_REQUESTED];
-    [BuildingEvents.FLOOR_UPDATED]: { type: 'resetButton', floor: number };
+    [BuildingEvents.END_FLOOR_STOP]: { floor: number };
+    [BuildingEvents.ELEVATOR_POSITION_CHANGED]: BuildingEventMap[BuildingEvents.ELEVATOR_POSITION_CHANGED];
 }
 
 enum ElevatorState {
@@ -21,37 +23,31 @@ enum ElevatorState {
 }
 
 export class Elevator extends EventEmitter<ElevatorEventMap> {
-    id: number;                                    // Unique identifier for the elevator
-    currentFloor: number = 0;                      // Current floor position
-    private targetFloors: number[] = [];                   // Queue of floors to visit
-    private state: ElevatorState = ElevatorState.IDLE;         // Current state of the elevator
-    private lastIntendedFloor: number = 0;                // Last floor in current schedule
-    element: HTMLElement;                          // DOM element representing the elevator
-    private settings: BuildingSettings;                    // Configuration settings
-    private estimatedCompletionTime: number = 0;          // Estimated time to complete all scheduled stops
+    id: number;
+    currentFloor: number = 0;
+    private targetFloors: number[] = [];
+    private state: ElevatorState = ElevatorState.IDLE;
+    private lastIntendedFloor: number = 0;
+    private settings: BuildingSettings;
     currentDestination: number | null = null;
-    previousFloor: number | null = null; // Previous floor
+    previousFloor: number | null = null;
+    timeStartFloorStop: number = 0;
+
+    // Physical position tracking
+    private exactPosition: number = 0;  // Position in floors (can be fractional)
+    private movementStartTime: number | null = null;
+    private lastPassedFloor: number = 0;
+    private updateInterval: number | null = null;
+    private readonly UPDATE_FREQUENCY = 60;
+
 
     private timeouts: number[] = [];
-    private transitionEndListener: (() => void) | null = null;
-
 
     constructor(id: number, element: HTMLElement, settings: BuildingSettings) {
         super();
         this.id = id;
-        this.element = element;
         this.settings = settings;
-    }
-
-    /**
- * Gets the remaining time for the elevator to complete its current schedule
- * @returns Time in milliseconds until all current requests are completed
- */
-    getRemainingTime(): number {
-        if (this.estimatedCompletionTime === 0) return 0;
-        const remainingTime = this.estimatedCompletionTime - Date.now();
-        console.log('Remaining time:', remainingTime);
-        return Math.max(0, remainingTime);
+        this.exactPosition = 0;
     }
 
     /**
@@ -60,46 +56,214 @@ export class Elevator extends EventEmitter<ElevatorEventMap> {
      * @returns Time in milliseconds needed to service the new floor
      */
     getTimeToNewFloor(newFloor: number): number {
-        if (this.targetFloors.length === 0) {
-            // If this is the first floor being added, calculate from current position
-            const floorsToMove = Math.abs(newFloor - this.currentFloor);
-            return (floorsToMove * this.settings.floorPassingTime + this.settings.stopDelay) * 1000; // Convert to milliseconds
+        let floorsToMove;
+        let basePosition;
+
+        if (this.state === ElevatorState.MOVING && this.currentDestination !== null) {
+            // If moving, calculate from current exact position
+            basePosition = this.exactPosition;
+            floorsToMove = Math.abs(newFloor - basePosition);
+        } else if (this.targetFloors.length === 0) {
+            // If idle, calculate from current position
+            basePosition = this.currentFloor;
+            floorsToMove = Math.abs(newFloor - basePosition);
         } else {
-            // Calculate from the last floor in the current sequence
-            const previousLastFloor = this.lastIntendedFloor;
-            const floorsToMove = Math.abs(newFloor - previousLastFloor);
-            return (floorsToMove * this.settings.floorPassingTime + this.settings.stopDelay) * 1000; // Convert to milliseconds
+            // Calculate from last floor in sequence
+            basePosition = this.lastIntendedFloor;
+            floorsToMove = Math.abs(newFloor - basePosition);
         }
+
+        // Calculate transit time based on floor distance
+        const transitTime = floorsToMove * this.settings.floorPassingTime * 1000;
+        const stopTime = this.settings.stopDelay * 1000;
+
+        return transitTime + stopTime;
     }
 
     /**
-     * Calculates the total time needed to service a new floor request
-     * @param newFloor - The floor number being requested
-     * @returns Time in milliseconds needed to service the new floor
+     * Calculates time until reaching a requested floor, considering current movement and queue
+     * If no floor is provided, calculates total journey time for all queued floors
+     * @param requestedFloor Optional floor to calculate time to. If not provided, calculates total journey time
+     * @returns Time in milliseconds
      */
-    calculateAdditionalTime(newFloor: number): number {
-        return this.getRemainingTime() + this.getTimeToNewFloor(newFloor);
-    }
+    getTimeToRequestedFloor(requestedFloor?: number): number {
+        let totalTime = 0;
+        let currentPosition = this.currentFloor;
+        const now = Date.now();
 
-    /**
-     * Assigns a new floor request to this elevator
-     * @param floor - The floor number to add to the schedule
-     */
-    assignFloor(floor: number) {
-        if (!this.targetFloors.includes(floor)) {
-            const additionalTime = this.getTimeToNewFloor(floor);
+        // If elevator is moving, add remaining time to current destination
+        if (this.state === ElevatorState.MOVING && this.currentDestination !== null && this.movementStartTime) {
+            const remainingDistance = Math.abs(this.currentDestination - this.exactPosition);
+            const remainingTime = remainingDistance * this.settings.floorPassingTime * 1000;
 
-            // Update completion time estimates
-            if (this.estimatedCompletionTime === 0) {
-                this.estimatedCompletionTime = Date.now() + (additionalTime);
-            } else {
-                this.estimatedCompletionTime += (additionalTime);
+            // If this is the requested floor, don't include stop time
+            if (requestedFloor !== undefined && this.currentDestination === requestedFloor) {
+                return totalTime + remainingTime;
             }
 
+            totalTime += remainingTime + this.settings.stopDelay * 1000;
+            currentPosition = this.currentDestination;
+        }
+
+        // If elevator is stopping, add remaining stop time
+        if (this.state === ElevatorState.STOPPING) {
+            const timeSinceStopStart = now - this.timeStartFloorStop;
+            const stopDelay = this.settings.stopDelay * 1000;
+            const remainingStopTime = Math.max(0, stopDelay - timeSinceStopStart);
+            totalTime += remainingStopTime;
+        }
+
+        // Calculate time through the queue
+        for (const floor of this.targetFloors) {
+            const distance = Math.abs(floor - currentPosition);
+            const transitTime = distance * this.settings.floorPassingTime * 1000;
+
+            // If this is the requested floor, return time without stop delay
+            if (requestedFloor !== undefined && floor === requestedFloor) {
+                return totalTime + transitTime;
+            }
+
+            // For intermediate floors, include both transit and stop time
+            totalTime += transitTime + this.settings.stopDelay * 1000;
+            currentPosition = floor;
+        }
+
+        // If requested floor wasn't found in queue or we're calculating total journey time
+        if (requestedFloor !== undefined) {
+            // Calculate time to requested floor from last position
+            const finalDistance = Math.abs(requestedFloor - currentPosition);
+            const finalTransitTime = finalDistance * this.settings.floorPassingTime * 1000;
+            return totalTime + finalTransitTime;
+        }
+
+        return totalTime;
+    }
+
+    assignFloor(floor: number) {
+        if (!this.targetFloors.includes(floor)) {
             this.targetFloors.push(floor);
             this.lastIntendedFloor = floor;
-            this.move();
+
+            const completionTime = this.getTimeToRequestedFloor();
+
+            // Format the completion time properly
+            const estimatedDate = new Date(completionTime);
+            const secondsUntilCompletion = Math.round((completionTime) / 1000);
+
+            console.log(`Floor ${floor} assigned. Estimated completion: ${estimatedDate.toISOString()} (in ${secondsUntilCompletion}s) elevator ${this.id}`);
+
+            if (this.state === ElevatorState.IDLE) {
+                this.move();
+            }
         }
+    }
+
+    /**
+     * Initiates elevator movement to the next target floor
+     */
+    move(): void {
+        if (this.state === ElevatorState.MOVING || this.state === ElevatorState.STOPPING || this.targetFloors.length === 0) return;
+
+        const nextFloor = this.targetFloors[0];
+        const now = Date.now();
+        console.log(`Starting move to floor ${nextFloor} at ${new Date(now).toISOString()} elevator ${this.id}`);
+        this.state = ElevatorState.MOVING;
+        this.targetFloors.shift();
+        this.currentDestination = nextFloor;
+        this.previousFloor = this.currentFloor;
+        this.movementStartTime = now;
+        this.startMovementUpdates();
+        this.emit('move', this);
+    }
+
+    /**
+     * Updates internal position and emits events during movement
+     */
+    private updatePosition(): void {
+        if (this.state !== ElevatorState.MOVING || !this.movementStartTime || this.currentDestination === null) {
+            this.stopMovementUpdates();
+            return;
+        }
+
+        const now = Date.now();
+        const elapsedTime = (now - this.movementStartTime) / 1000;
+        const totalDistance = Math.abs(this.currentDestination - this.previousFloor!);
+        const totalTime = totalDistance * this.settings.floorPassingTime;
+        const progress = Math.min(elapsedTime / totalTime, 1);
+
+        // Calculate new position
+        const direction = this.currentDestination > this.previousFloor! ? 1 : -1;
+        this.exactPosition = this.previousFloor! + (totalDistance * progress * direction);
+
+        // Check for floor passing
+        const currentFloor = Math.floor(this.exactPosition);
+        if (currentFloor !== this.lastPassedFloor) {
+            this.lastPassedFloor = currentFloor;
+            this.emit('floor-passed', { floor: currentFloor });
+            console.log(`Passing floor ${currentFloor} at ${new Date(now).toISOString()} elevator ${this.id}`);
+        }
+
+        this.emit(BuildingEvents.ELEVATOR_POSITION_CHANGED, {
+            elevator: this.id,
+            position: this.exactPosition
+        });
+
+        if (progress >= 1) {
+            this.stopMovementUpdates();
+            this.handleArrival();
+        }
+    }
+
+    /**
+     * Starts the position update interval
+     */
+    private startMovementUpdates(): void {
+        this.stopMovementUpdates();
+        const updateDelay = 1000 / this.UPDATE_FREQUENCY;
+        this.updateInterval = window.setInterval(() => this.updatePosition(), updateDelay);
+    }
+
+    /**
+     * Stops the position update interval
+     */
+    private stopMovementUpdates(): void {
+        if (this.updateInterval !== null) {
+            clearInterval(this.updateInterval);
+            this.updateInterval = null;
+        }
+    }
+
+    /**
+     * Handles elevator arrival at destination
+     */
+    private handleArrival(): void {
+        this.state = ElevatorState.STOPPING;
+        this.exactPosition = this.currentDestination!;
+        this.currentFloor = this.currentDestination!;
+        this.timeStartFloorStop = Date.now();
+
+        console.log(`Arrived at floor ${this.currentFloor} at ${new Date().toISOString()} elevator ${this.id}`);
+
+        this.emit('arrival', this);
+
+        const stopTimeout = window.setTimeout(() => {
+            if (this.state === ElevatorState.STOPPING) {
+                this.emit(BuildingEvents.END_FLOOR_STOP, {
+                    floor: this.currentFloor
+                });
+
+                this.state = ElevatorState.IDLE;
+                this.timeStartFloorStop = 0;
+                if (this.targetFloors.length > 0) {
+                    this.move();
+                } else {
+                    this.currentDestination = null;
+                    console.log(`All floors completed at ${new Date().toISOString()} elevator ${this.id}`);
+                }
+            }
+        }, this.settings.stopDelay * 1000);
+
+        this.timeouts.push(stopTimeout);
     }
 
     /**
@@ -110,80 +274,8 @@ export class Elevator extends EventEmitter<ElevatorEventMap> {
         this.timeouts.forEach(timeout => window.clearTimeout(timeout));
         this.timeouts = [];
 
-        // Remove transition end listener if it exists
-        if (this.transitionEndListener) {
-            this.element.removeEventListener('transitionend', this.transitionEndListener);
-            this.transitionEndListener = null;
-        }
-
-        // Remove the element from DOM if it exists
-        this.element.remove();
-    }
-
-    /**
-     * Initiates elevator movement to the next target floor
-     * Emits 'arrival' event when elevator arrives at destination
-     */
-    move() {
-        if (this.state === ElevatorState.MOVING || this.state === ElevatorState.STOPPING || this.targetFloors.length === 0) return;
-
-        this.state = ElevatorState.MOVING;
-        const nextFloor = this.targetFloors.shift();
-
-        if (nextFloor === undefined || nextFloor === this.currentFloor) {
-            if (this.targetFloors.length === 0) {
-                this.estimatedCompletionTime = 0;
-            }
-            this.currentDestination = null;
-            this.state = ElevatorState.IDLE;
-            this.emit('arrival', this);
-            return;
-        }
-
-        this.currentDestination = nextFloor;
-        this.previousFloor = this.currentFloor;
-        const distance = Math.abs(nextFloor - this.currentFloor);
-        const movementTime = distance * this.settings.floorPassingTime;
-        const floorPosition = nextFloor * this.settings.floorHeight;
-
-        // Clean up old transition end listener
-        if (this.transitionEndListener) {
-            this.element.removeEventListener('transitionend', this.transitionEndListener);
-        }
-
-        // Set up new transition end listener
-        this.transitionEndListener = () => {
-            this.state = ElevatorState.STOPPING;
-            this.currentFloor = this.currentDestination!;
-            this.emit('arrival', this);
-
-            const stopTimeout = window.setTimeout(() => {
-                if (this.state === ElevatorState.STOPPING) {
-                    // Reset floor button and emit floor update before changing state
-                    this.emit(BuildingEvents.FLOOR_UPDATED, {
-                        type: 'resetButton',
-                        floor: this.currentFloor
-                    });
-
-                    this.state = ElevatorState.IDLE;
-                    if (this.targetFloors.length > 0) {
-                        this.move();
-                    } else {
-                        this.estimatedCompletionTime = 0;
-                        this.currentDestination = null;
-                    }
-                }
-            }, this.settings.stopDelay * 1000); // Convert to milliseconds
-
-            this.timeouts.push(stopTimeout);
-        };
-
-        this.element.addEventListener('transitionend', this.transitionEndListener);
-
-        this.element.style.transition = `transform ${movementTime}s linear`;
-        this.element.style.transform = `translateY(-${floorPosition}px)`;
-        this.currentFloor = nextFloor;
-        this.emit('move', this);
+        // Stop movement updates
+        this.stopMovementUpdates();
 
     }
 }

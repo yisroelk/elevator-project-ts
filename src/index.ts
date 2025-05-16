@@ -29,6 +29,14 @@ function updateFloorUI(floorDiv: HTMLElement, floor: Floor) {
 }
 
 /**
+ * Updates the visual position of the elevator
+ */
+function updateElevatorPosition(elevator: HTMLElement, position: number, floorHeight: number) {
+    const visualPosition = position * floorHeight;
+    elevator.style.transform = `translateY(-${visualPosition}px)`;
+}
+
+/**
  * Creates and sets up the user interface for the elevator simulation
  * @param buildings - Array of building instances to create UI for
  */
@@ -58,12 +66,12 @@ function createUI(buildings: Building[]) {
             'data-building-id': buildingIndex.toString()
         });
 
-        // Calculate total height (110px per floor)
+        // Calculate total height
         const totalHeight = settings.floorHeight * settings.numberOfFloors;
         DomUtils.setStyles(buildingDiv, { height: `${totalHeight}px` });
 
         const elevatorContainer = DomUtils.createElement('div', CSS_CLASSES.ELEVATOR_CONTAINER);
-        DomUtils.setStyles(elevatorContainer, { height: `${totalHeight}px` });
+        DomUtils.setStyles(elevatorContainer, { height: `${totalHeight}px`, width : `${settings.numberOfElevators * 70}px` });
 
         const floorsToDisplay = [...building.getFloors()].reverse();
 
@@ -96,9 +104,14 @@ function createUI(buildings: Building[]) {
             buildingDiv.appendChild(floorDiv);
         });
 
-        building.getElevators().forEach((elevator, index) => {
-            DomUtils.setStyles(elevator.element, { left: `${index * 70}px` });
-            elevatorContainer.appendChild(elevator.element);
+        const elevatorToDisplay = [...building.getElevators()];
+
+        elevatorToDisplay.forEach((elevator, displayIndex) => {
+            const elevatorDiv = DomUtils.createElement('div', CSS_CLASSES.ELEVATOR);
+            DomUtils.setStyles(elevatorDiv, { left: `${displayIndex * 70}px` });
+            elevatorDiv.dataset.index = displayIndex.toString();
+            elevatorDiv.dataset.elevatorNumber = elevator.id.toString();
+            elevatorContainer.appendChild(elevatorDiv);
         });
 
         buildingWrapper.append(buildingDiv, elevatorContainer);
@@ -106,22 +119,29 @@ function createUI(buildings: Building[]) {
         container.appendChild(buildingContainer);
 
         // Subscribe to building events for UI updates
-        building.on(BuildingEvents.FLOOR_UPDATED, (data) => {
-            // Handle both Floor object and resetButton event types
-            const floorNumber = 'type' in data ? data.floor : data.number;
+        building.on(BuildingEvents.FLOOR_UPDATED, (floor) => {
             const floorDiv = buildingDiv.querySelector(
-                `div.floor[data-floor-number="${floorNumber}"]`
+                `div.floor[data-floor-number="${floor.number}"]`
             );
-            if (floorDiv && !('type' in data)) {
-                updateFloorUI(floorDiv as HTMLElement, data);
+            if (floorDiv) {
+                updateFloorUI(floorDiv as HTMLElement, floor);
             }
         });
 
         building.on(BuildingEvents.ELEVATOR_REQUESTED, (data) => {
+            console.log('§§§§§§§§ Elevator requested:', data);
             const floor = building.getFloors()[data.floor];
             if (!floor) return;
             floor.pressButton();
             floor.startCountdown(data.estimatedTime);
+        });
+
+        building.on(BuildingEvents.ELEVATOR_POSITION_CHANGED, (data) => {
+            const elevatorDiv = elevatorContainer.querySelector(
+                `div.elevator[data-elevator-number="${data.elevator}"]`
+            );
+            if (!elevatorDiv) return;
+            updateElevatorPosition(elevatorDiv as HTMLElement, data.position, settings.floorHeight);
         });
     });
 

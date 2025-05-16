@@ -87,20 +87,23 @@ export class Floor extends EventEmitter<FloorEventMap> {
      */
     startCountdown(totalTime: number) {
         this.stopCountdown();
-        this._countdownValue = Math.max(0, Math.round(totalTime) / 1000); // Convert milliseconds to seconds
+        this._countdownValue = Math.max(0, totalTime / 1000); // Convert milliseconds to seconds
 
-        // Use performance.now() for more accurate timing
-        const startTime = performance.now();
+        const startTime = Date.now();
         const updateInterval = 100; // Update every 100ms
 
         this._countdownInterval = window.setInterval(() => {
-            const elapsedTime = (performance.now() - startTime) / 1000; // Convert to seconds
-            this._countdownValue = Math.max(0, (totalTime / 1000) - elapsedTime);
+            const elapsedTime = (Date.now() - startTime) / 1000;
+            const newCountdownValue = Math.max(0, (totalTime / 1000) - elapsedTime);
 
-            this.emit(BuildingEvents.COUNTDOWN_CHANGED, {
-                floor: this.number,
-                timeLeft: parseFloat(this._countdownValue.toFixed(1))
-            });
+            // Only update and emit if the value has changed significantly
+            if (Math.abs(this._countdownValue - newCountdownValue) >= 0.05) {
+                this._countdownValue = newCountdownValue;
+                this.emit(BuildingEvents.COUNTDOWN_CHANGED, {
+                    floor: this.number,
+                    timeLeft: this._countdownValue
+                });
+            }
 
             if (this._countdownValue <= 0) {
                 this.stopCountdown();

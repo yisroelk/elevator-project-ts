@@ -6,7 +6,9 @@ export enum BuildingEvents {
     ELEVATOR_ARRIVED = 'elevatorArrived',
     ELEVATOR_LEFT = 'elevatorLeft',
     FLOOR_UPDATED = 'floorUpdated',
-    COUNTDOWN_CHANGED = 'countdownChanged'
+    COUNTDOWN_CHANGED = 'countdownChanged',
+    ELEVATOR_POSITION_CHANGED = 'elevatorPositionChanged',
+    END_FLOOR_STOP = 'endFloorStop'
 }
 
 export interface BuildingEventMap {
@@ -23,9 +25,14 @@ export interface BuildingEventMap {
         floor: number;
         elevator: Elevator;
     };
-    [BuildingEvents.FLOOR_UPDATED]: { type: 'resetButton', floor: number } | Floor;
+    [BuildingEvents.FLOOR_UPDATED]: Floor;
+    [BuildingEvents.END_FLOOR_STOP]: { floor: number };
     [BuildingEvents.COUNTDOWN_CHANGED]: {
         floor: number;
         timeLeft: number;
+    };
+    [BuildingEvents.ELEVATOR_POSITION_CHANGED]: {
+        elevator: number;
+        position: number;
     };
 }

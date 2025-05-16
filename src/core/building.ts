@@ -49,6 +49,12 @@ export class Building extends EventEmitter<BuildingEventMap> {
         this.elevators.push(elevator);
         elevator.on('arrival', () => this.handleElevatorArrival(elevator));
         elevator.on('move', () => this.handleElevatorMove(elevator));
+        elevator.on(BuildingEvents.ELEVATOR_POSITION_CHANGED, ({ position, elevator }) => {
+            this.emit(BuildingEvents.ELEVATOR_POSITION_CHANGED, {
+                elevator,
+                position,
+            });
+        });
     }
 
     /**
@@ -69,7 +75,8 @@ export class Building extends EventEmitter<BuildingEventMap> {
      * @returns Score based on estimated time to service the request
      */
     private calculateElevatorScore(elevator: Elevator, requestedFloor: number): number {
-        return elevator.calculateAdditionalTime(requestedFloor);
+        const estimatedTime = elevator.getTimeToRequestedFloor(requestedFloor);
+        return estimatedTime;
     }
 
     /**
@@ -78,10 +85,8 @@ export class Building extends EventEmitter<BuildingEventMap> {
      * @param floorNumber - The floor requesting an elevator
      */
     requestElevator(floorNumber: number) {
-
         let selectedElevator: Elevator | null = null;
         let bestScore = Infinity;
-
 
         // Find the elevator that can service this request most efficiently
         for (const elevator of this.elevators) {
@@ -92,19 +97,21 @@ export class Building extends EventEmitter<BuildingEventMap> {
             }
         }
 
-
         if (selectedElevator) {
-            const displayTime = bestScore - (this.settings.stopDelay * 1000); // Remove stop delay from displayed time
+            // Calculate the time it will take to get to this specific floor
+            const estimatedTime = selectedElevator.getTimeToRequestedFloor(floorNumber);
 
-            // Emit event before making changes
+            // Assign the floor which will update internal timing calculations
+            selectedElevator.assignFloor(floorNumber);
+
+            // Emit event with the calculated time
             this.emit(BuildingEvents.ELEVATOR_REQUESTED, {
                 floor: floorNumber,
                 elevator: selectedElevator,
-                estimatedTime: displayTime
+                estimatedTime: Math.max(0, estimatedTime)
             });
 
-            // Assign floor after event emission
-            selectedElevator.assignFloor(floorNumber);
+            console.log(`Estimated time for floor ${floorNumber}: ${estimatedTime}ms`);
         }
     }
 
@@ -137,19 +144,18 @@ export class Building extends EventEmitter<BuildingEventMap> {
         const currentFloor = this.floors[elevator.currentFloor];
         currentFloor.hasElevator = true;
 
-        this.emit(BuildingEvents.ELEVATOR_ARRIVED, {
-            floor: elevator.currentFloor,
-            elevator: elevator
-        });
+        // this.emit(BuildingEvents.ELEVATOR_ARRIVED, {
+        //     floor: elevator.currentFloor,
+        //     elevator: elevator
+        // });
 
         this.emit(BuildingEvents.FLOOR_UPDATED, currentFloor);
 
-        elevator.on(BuildingEvents.FLOOR_UPDATED, (data) => {
-            if (data.type === 'resetButton') {
-                const floor = this.floors[data.floor];
-                floor.resetButton();
-                this.emit(BuildingEvents.FLOOR_UPDATED, floor);
-            }
+        elevator.on(BuildingEvents.END_FLOOR_STOP, (data) => {
+            const floor = this.floors[data.floor];
+            floor.resetButton();
+            this.emit(BuildingEvents.FLOOR_UPDATED, floor);
+
         });
     }
 
