@@ -1,7 +1,10 @@
 import { Building } from './core/building';
 import { BuildingFactory } from './core/buildingFactory';
+import { HighRiseBuildingFactory } from './core/highRiseBuildingFactory';
+import { BuildingFactoryBase } from './core/abstractBuildingFactory';
 import { DomUtils } from './utils/DomUtils';
 import { createSettingsPanel } from './components/settingsPanel';
+import { SettingsManager } from './core/SettingsManager';
 import './styles/styles.css';
 import './styles/help.css';
 import './styles/main.css';
@@ -10,10 +13,20 @@ import { BuildingEvents } from './types/BuildingEvents';
 import { Floor } from './core/floor';
 
 /**
+ * Gets the appropriate factory based on settings
+ */
+function getFactory(): BuildingFactoryBase {
+    const settings = SettingsManager.getInstance().getSettings();
+    return settings.factoryType === 'highrise' ?
+        new HighRiseBuildingFactory() :
+        new BuildingFactory();
+}
+
+/**
  * Reinitializes all buildings with current settings
  */
 function reinitializeBuilding() {
-    const factory = new BuildingFactory();
+    const factory = getFactory();
     const buildings = factory.createBuildings();
     createUI(buildings);
 }
@@ -71,7 +84,7 @@ function createUI(buildings: Building[]) {
         DomUtils.setStyles(buildingDiv, { height: `${totalHeight}px` });
 
         const elevatorContainer = DomUtils.createElement('div', CSS_CLASSES.ELEVATOR_CONTAINER);
-        DomUtils.setStyles(elevatorContainer, { height: `${totalHeight}px`, width : `${settings.numberOfElevators * 70}px` });
+        DomUtils.setStyles(elevatorContainer, { height: `${totalHeight}px`, width: `${settings.numberOfElevators * 70}px` });
 
         const floorsToDisplay = [...building.getFloors()].reverse();
 

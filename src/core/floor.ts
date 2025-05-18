@@ -21,12 +21,21 @@ export class Floor extends EventEmitter<FloorEventMap> {
 
     constructor(public readonly number: number) {
         super();
+        // Initialize audio on creation but don't play it
         this._audio = new Audio('/assets/ding.mp3');
-        // Create a promise to track audio loading
         this._audioLoaded = new Promise((resolve) => {
             this._audio.addEventListener('canplaythrough', () => resolve());
         });
+        // Preload the audio file
         this._audio.load();
+    }
+
+    /**
+     * Used for initial state setup only - sets elevator presence without playing sound
+     */
+    initializeWithElevator(): void {
+        this._elevatorCount++;
+        this.emit(BuildingEvents.FLOOR_UPDATED, this);
     }
 
     /**
@@ -43,10 +52,12 @@ export class Floor extends EventEmitter<FloorEventMap> {
         if (value) {
             this._elevatorCount++;
             this.stopCountdown();
-            // Play sound only if audio is loaded
+
+            // Play sound only if audio is loaded, it should be ready since it was preloaded
             this._audioLoaded
                 .then(() => this._audio.play())
                 .catch(err => console.warn('Audio playback failed:', err));
+
             this.emit(BuildingEvents.FLOOR_UPDATED, this);
         } else {
             this._elevatorCount = Math.max(0, this._elevatorCount - 1);

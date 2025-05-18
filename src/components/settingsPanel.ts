@@ -27,6 +27,12 @@ export function createSettingsPanel() {
     panel.innerHTML = `
         <h2 id="settings-title" tabindex="-1">Building Settings</h2>
         <div class="${CSS_CLASSES.SETTINGS_GROUP}" role="form">
+            <label for="factoryType">Building Type</label>
+            <select id="factoryType" aria-describedby="factory-desc">
+                <option value="standard" ${currentSettings.factoryType === 'standard' ? 'selected' : ''}>Standard Building</option>
+                <option value="highrise" ${currentSettings.factoryType === 'highrise' ? 'selected' : ''}>High-Rise Building</option>
+            </select>
+
             <label for="numberOfBuildings">Number of Buildings</label>
             <input type="number" id="numberOfBuildings" value="${currentSettings.numberOfBuildings}" 
                 min="1" max="4" aria-describedby="buildings-desc">
@@ -87,6 +93,7 @@ export function createSettingsPanel() {
             const applyButton = panel.querySelector('.apply-button') as HTMLButtonElement;
             applyButton.onclick = () => {
                 const newSettings = {
+                    factoryType: (panel.querySelector('#factoryType') as HTMLSelectElement).value as 'standard' | 'highrise',
                     numberOfBuildings: Number((panel.querySelector('#numberOfBuildings') as HTMLInputElement).value),
                     numberOfFloors: Number((panel.querySelector('#numberOfFloors') as HTMLInputElement).value),
                     numberOfElevators: Number((panel.querySelector('#numberOfElevators') as HTMLInputElement).value),

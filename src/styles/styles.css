@@ -180,6 +180,21 @@ html, body {
     margin-bottom: 10px;
 }
 
+.settings-group select {
+    width: 100%;
+    padding: 5px;
+    margin-bottom: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: white;
+}
+
+.settings-group select:focus-visible {
+    outline: 2px solid #4CAF50;
+    outline-offset: 2px;
+}
+
 .apply-button {
     padding: 10px 20px;
     background-color: #4CAF50;

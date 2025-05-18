@@ -28,7 +28,7 @@ export class Elevator extends EventEmitter<ElevatorEventMap> {
     private targetFloors: number[] = [];
     private state: ElevatorState = ElevatorState.IDLE;
     private lastIntendedFloor: number = 0;
-    private settings: BuildingSettings;
+    protected settings: BuildingSettings;
     currentDestination: number | null = null;
     previousFloor: number | null = null;
     timeStartFloorStop: number = 0;
@@ -43,42 +43,13 @@ export class Elevator extends EventEmitter<ElevatorEventMap> {
 
     private timeouts: number[] = [];
 
-    constructor(id: number, element: HTMLElement, settings: BuildingSettings) {
+    constructor(id: number, settings: BuildingSettings) {
         super();
         this.id = id;
         this.settings = settings;
         this.exactPosition = 0;
     }
 
-    /**
-     * Calculates additional time needed to service a new floor request
-     * @param newFloor - The floor number being requested
-     * @returns Time in milliseconds needed to service the new floor
-     */
-    getTimeToNewFloor(newFloor: number): number {
-        let floorsToMove;
-        let basePosition;
-
-        if (this.state === ElevatorState.MOVING && this.currentDestination !== null) {
-            // If moving, calculate from current exact position
-            basePosition = this.exactPosition;
-            floorsToMove = Math.abs(newFloor - basePosition);
-        } else if (this.targetFloors.length === 0) {
-            // If idle, calculate from current position
-            basePosition = this.currentFloor;
-            floorsToMove = Math.abs(newFloor - basePosition);
-        } else {
-            // Calculate from last floor in sequence
-            basePosition = this.lastIntendedFloor;
-            floorsToMove = Math.abs(newFloor - basePosition);
-        }
-
-        // Calculate transit time based on floor distance
-        const transitTime = floorsToMove * this.settings.floorPassingTime * 1000;
-        const stopTime = this.settings.stopDelay * 1000;
-
-        return transitTime + stopTime;
-    }
 
     /**
      * Calculates time until reaching a requested floor, considering current movement and queue
@@ -179,7 +150,7 @@ export class Elevator extends EventEmitter<ElevatorEventMap> {
     /**
      * Updates internal position and emits events during movement
      */
-    private updatePosition(): void {
+    protected updatePosition(): void {
         if (this.state !== ElevatorState.MOVING || !this.movementStartTime || this.currentDestination === null) {
             this.stopMovementUpdates();
             return;
