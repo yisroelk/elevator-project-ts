@@ -1,0 +1,115 @@
+button:focus-visible,
+input:focus-visible {
+    outline: 2px solid #4CAF50;
+    outline-offset: 2px;
+}
+
+.metal {
+    position: relative;
+    margin: 5px auto;
+    outline: none;
+    font: bold 2em "Helvetica Neue", Arial, Helvetica, Geneva, sans-serif;
+    text-align: center;
+    color: hsla(0,0%,20%,1) !important; /* Added !important to prevent override */
+    text-shadow: hsla(0,0%,40%,.5) 0 -1px 0, hsla(0,0%,100%,.6) 0 2px 1px;
+    background-color: hsl(0,0%,90%);
+    box-shadow: inset hsla(0,0%,15%, 1) 0 0px 0px 4px,
+                inset hsla(0,0%,15%, .8) 0 -1px 5px 4px,
+                inset hsla(0,0%,0%, .25) 0 -1px 0px 7px,
+                inset hsla(0,0%,100%,.7) 0 2px 1px 7px,
+                hsla(0,0%, 0%,.0) 0 -5px 6px 4px,
+                hsla(0,0%,100%,.0) 0 5px 6px 4px;
+    transition: color .2s;
+}
+
+.metal.linear {
+    width: 100px;
+    font-size: 4em;
+    height: 80px;
+    border-radius: .5em;
+    background-image: -webkit-repeating-linear-gradient(left, hsla(0,0%,100%,0) 0%, hsla(0,0%,100%,0) 6%, hsla(0,0%,100%, .1) 7.5%),
+                      -webkit-repeating-linear-gradient(left, hsla(0,0%, 0%,0) 0%, hsla(0,0%, 0%,0) 4%, hsla(0,0%, 0%,.03) 4.5%),
+                      -webkit-repeating-linear-gradient(left, hsla(0,0%,100%,0) 0%, hsla(0,0%,100%,0) 1.2%, hsla(0,0%,100%,.15) 2.2%),
+                      linear-gradient(180deg, hsl(0,0%,78%) 0%, hsl(0,0%,90%) 47%, hsl(0,0%,78%) 53%, hsl(0,0%,70%)100%);
+}
+
+.metal:active {
+    color: hsl(210, 100%, 40%);
+    text-shadow: hsla(210,100%,20%,.3) 0 -1px 0,
+                 hsl(210,100%,85%) 0 2px 1px,
+                 hsla(200,100%,80%,1) 0 0 5px,
+                 hsla(210,100%,50%,.6) 0 0 20px;
+    box-shadow: inset hsla(210,100%,30%, 1) 0 0px 0px 4px,
+                inset hsla(210,100%,15%, .4) 0 -1px 5px 4px,
+                inset hsla(210,100%,20%,.25) 0 -1px 0px 7px,
+                inset hsla(210,100%,100%,.7) 0 2px 1px 7px,
+                hsla(210,100%,75%, .8) 0 0px 3px 2px,
+                hsla(210,50%,40%, .0) 0 -5px 6px 4px,
+                hsla(210,80%,95%, 0) 0 5px 6px 4px;
+}
+
+.metal.linear.active {
+    color: #00ff00 !important;
+}
+
+.floor-button {
+    padding: 5px 15px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+}
+
+.floor-button {
+    background-color: #2E7D32;
+    color: white;
+    font-weight: bold;
+}
+
+.floor-button:disabled {
+    cursor: not-allowed;
+}
+
+.floor-button.pressed {
+    background-color: #C62828;
+}
+
+.apply-button {
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.apply-button:hover {
+    background-color: #45a049;
+}
+
+.apply-global {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.apply-global:hover {
+    background-color: #45a049;
+}
+
+.clear-global {
+    background-color: #f44336;
+    color: white;
+}
+
+.clear-global:hover {
+    background-color: #da190b;
+}
+
+/* Ensure floor buttons that aren't metal stay white */
+.floor-button:not(.metal) {
+    color: white;
+    background-color: #2E7D32;
+    font-weight: bold;
+}

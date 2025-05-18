@@ -1,5 +1,9 @@
 import { BuildingSettings, DefaultSettings, ElevatorConfig, BuildingConfig } from '../types/BuildingSettings';
 
+/**
+ * Singleton class that manages global settings for the elevator system
+ * Handles configuration updates and propagates changes to all components
+ */
 export class SettingsManager {
     private static instance: SettingsManager;
     private settings: BuildingSettings;
@@ -10,20 +14,27 @@ export class SettingsManager {
         this.settings = this.initializeSettings(DefaultSettings);
     }
 
+    /**
+     * Creates initial settings by cloning defaults and populating building configs
+     * Each building gets its own copy of default settings that can be customized
+     */
     private initializeSettings(defaultSettings: BuildingSettings): BuildingSettings {
         const settings = { ...defaultSettings };
 
         // Create initial building configs based on defaults
-        settings.buildingConfigs = Array(settings.numberOfBuildings).fill(null).map(() => ({
-            ...settings.defaultBuildingConfig,
-            elevatorConfigs: Array(settings.defaultBuildingConfig.numberOfElevators)
-                .fill(null)
-                .map(() => ({ ...settings.defaultElevatorConfig }))
-        }));
+        settings.buildingConfigs = Array(settings.numberOfBuildings)
+            .fill(null)
+            .map(() => ({
+                ...settings.defaultBuildingConfig,
+                elevatorConfigs: Array(settings.defaultBuildingConfig.numberOfElevators)
+                    .fill(null)
+                    .map(() => ({ ...settings.defaultElevatorConfig }))
+            }));
 
         return settings;
     }
 
+    // Singleton pattern implementation
     static getInstance(): SettingsManager {
         if (!SettingsManager.instance) {
             SettingsManager.instance = new SettingsManager();
@@ -31,71 +42,92 @@ export class SettingsManager {
         return SettingsManager.instance;
     }
 
+    // Returns a deep copy of current settings to prevent direct mutation
     getSettings(): BuildingSettings {
         return { ...this.settings };
     }
 
+    /**
+     * Updates global default settings and optionally propagates changes
+     * @param newDefaults - Partial settings to update
+     * @param forceOverride - If true, overrides all individual settings with new defaults
+     */
     updateGlobalDefaults(newDefaults: Partial<BuildingSettings>, forceOverride: boolean = false) {
         const updatedSettings = { ...this.settings };
+        const defaultElevatorConfig = newDefaults.defaultElevatorConfig;
+        const defaultBuildingConfig = newDefaults.defaultBuildingConfig;
 
-        // Update default elevator config if provided
-        if (newDefaults.defaultElevatorConfig) {
+        // Update elevator defaults if provided
+        if (defaultElevatorConfig) {
             updatedSettings.defaultElevatorConfig = {
                 ...updatedSettings.defaultElevatorConfig,
-                ...newDefaults.defaultElevatorConfig
+                ...defaultElevatorConfig
             };
 
-            // Update all elevators with new defaults
+            // Update all individual elevator configs based on force override setting
             updatedSettings.buildingConfigs = updatedSettings.buildingConfigs.map(building => ({
                 ...building,
                 elevatorConfigs: building.elevatorConfigs.map(elevator => {
                     if (forceOverride) {
-                        // Force override - apply new defaults regardless of current values
-                        return { ...elevator, ...newDefaults.defaultElevatorConfig };
-                    } else {
-                        // Only update if matches old defaults
-                        const matchesOldDefaults =
-                            elevator.stopDelay === this.settings.defaultElevatorConfig.stopDelay &&
-                            elevator.floorPassingTime === this.settings.defaultElevatorConfig.floorPassingTime;
-                        return matchesOldDefaults ? { ...elevator, ...newDefaults.defaultElevatorConfig } : elevator;
+                        return { ...updatedSettings.defaultElevatorConfig };
                     }
+
+                    const updatedConfig = { ...elevator };
+                    // Check each property individually
+                    if (defaultElevatorConfig.stopDelay !== undefined &&
+                        elevator.stopDelay === this.settings.defaultElevatorConfig.stopDelay) {
+                        updatedConfig.stopDelay = defaultElevatorConfig.stopDelay;
+                    }
+                    if (defaultElevatorConfig.floorPassingTime !== undefined &&
+                        elevator.floorPassingTime === this.settings.defaultElevatorConfig.floorPassingTime) {
+                        updatedConfig.floorPassingTime = defaultElevatorConfig.floorPassingTime;
+                    }
+                    return updatedConfig;
                 })
             }));
         }
 
-        // Update default building config if provided
-        if (newDefaults.defaultBuildingConfig) {
+        // Update building defaults if provided
+        if (defaultBuildingConfig) {
             updatedSettings.defaultBuildingConfig = {
                 ...updatedSettings.defaultBuildingConfig,
-                ...newDefaults.defaultBuildingConfig
+                ...defaultBuildingConfig
             };
 
-            // Update all buildings with new defaults
+            // Update all building configs based on force override setting
             updatedSettings.buildingConfigs = updatedSettings.buildingConfigs.map(building => {
                 if (forceOverride) {
-                    // Force override - apply new defaults regardless of current values
                     return {
-                        ...building,
-                        ...newDefaults.defaultBuildingConfig,
-                        elevatorConfigs: building.elevatorConfigs // Preserve elevator configs
+                        ...updatedSettings.defaultBuildingConfig,
+                        elevatorConfigs: building.elevatorConfigs.map(elevator => ({
+                            ...updatedSettings.defaultElevatorConfig
+                        }))
                     };
-                } else {
-                    // Only update if matches old defaults
-                    const matchesOldDefaults =
-                        building.factoryType === this.settings.defaultBuildingConfig.factoryType &&
-                        building.numberOfFloors === this.settings.defaultBuildingConfig.numberOfFloors &&
-                        building.numberOfElevators === this.settings.defaultBuildingConfig.numberOfElevators &&
-                        building.floorHeight === this.settings.defaultBuildingConfig.floorHeight;
-                    return matchesOldDefaults ? {
-                        ...building,
-                        ...newDefaults.defaultBuildingConfig,
-                        elevatorConfigs: building.elevatorConfigs
-                    } : building;
                 }
+
+                const updatedBuilding = { ...building };
+                // Check each property individually
+                if (defaultBuildingConfig.factoryType !== undefined &&
+                    building.factoryType === this.settings.defaultBuildingConfig.factoryType) {
+                    updatedBuilding.factoryType = defaultBuildingConfig.factoryType;
+                }
+                if (defaultBuildingConfig.numberOfFloors !== undefined &&
+                    building.numberOfFloors === this.settings.defaultBuildingConfig.numberOfFloors) {
+                    updatedBuilding.numberOfFloors = defaultBuildingConfig.numberOfFloors;
+                }
+                if (defaultBuildingConfig.floorHeight !== undefined &&
+                    building.floorHeight === this.settings.defaultBuildingConfig.floorHeight) {
+                    updatedBuilding.floorHeight = defaultBuildingConfig.floorHeight;
+                }
+                if (defaultBuildingConfig.numberOfElevators !== undefined &&
+                    building.numberOfElevators === this.settings.defaultBuildingConfig.numberOfElevators) {
+                    updatedBuilding.numberOfElevators = defaultBuildingConfig.numberOfElevators;
+                }
+                return updatedBuilding;
             });
         }
 
-        // Update number of buildings if changed
+        // Handle changes to number of buildings
         if (newDefaults.numberOfBuildings !== undefined &&
             newDefaults.numberOfBuildings !== this.settings.numberOfBuildings) {
 
@@ -122,6 +154,10 @@ export class SettingsManager {
         this.notifyListeners();
     }
 
+    /**
+     * Updates configuration for a specific building
+     * Handles elevator count changes by adding/removing elevator configs
+     */
     updateBuildingConfig(buildingIndex: number, config: Partial<BuildingConfig>) {
         if (buildingIndex >= this.settings.numberOfBuildings) return;
 
@@ -154,6 +190,9 @@ export class SettingsManager {
         this.notifyListeners();
     }
 
+    /**
+     * Updates configuration for a specific elevator in a building
+     */
     updateElevatorConfig(buildingIndex: number, elevatorIndex: number, config: Partial<ElevatorConfig>) {
         if (buildingIndex >= this.settings.numberOfBuildings ||
             elevatorIndex >= this.settings.buildingConfigs[buildingIndex].numberOfElevators) return;
@@ -170,10 +209,16 @@ export class SettingsManager {
         this.notifyListeners();
     }
 
+    /**
+     * Adds a listener to be notified of settings changes
+     */
     addListener(listener: (settings: BuildingSettings) => void) {
         this.listeners.push(listener);
     }
 
+    /**
+     * Notifies all registered listeners of settings changes
+     */
     private notifyListeners() {
         this.listeners.forEach(listener => listener(this.getSettings()));
     }

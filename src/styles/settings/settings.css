@@ -1,0 +1,229 @@
+.settings-panel {
+    padding: 20px;
+    background: #f5f5f5;
+    border-radius: 5px;
+    min-width: 300px;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    display: none;
+}
+
+.settings-panel.visible {
+    display: block;
+}
+
+.settings-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    z-index: 999;
+}
+
+.settings-toggle:hover {
+    background-color: #45a049;
+}
+
+.settings-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    z-index: 999;
+}
+
+.settings-overlay.visible {
+    display: block;
+}
+
+.settings-group {
+    margin-bottom: 15px;
+}
+
+.settings-group label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.settings-group input {
+    width: 100%;
+    padding: 5px;
+    margin-bottom: 10px;
+}
+
+.settings-group select {
+    width: 100%;
+    padding: 5px;
+    margin-bottom: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: white;
+}
+
+.settings-group select:focus-visible {
+    outline: 2px solid #4CAF50;
+    outline-offset: 2px;
+}
+
+.building-config {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 15px;
+    margin: 15px 0;
+    background: #fff;
+}
+
+.building-config h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 1.1em;
+}
+
+.elevator-configs {
+    margin-top: 15px;
+    padding-left: 15px;
+    border-left: 2px solid #ccc;
+}
+
+.elevator-config {
+    background: #f9f9f9;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 4px;
+}
+
+.elevator-config h4 {
+    margin: 0 0 10px 0;
+    color: #444;
+    font-size: 1em;
+}
+
+.elevator-config label {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.elevator-config input {
+    width: calc(100% - 10px);
+    margin: 5px 0 10px;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+.global-settings {
+    background-color: #f0f8ff;
+    border: 2px solid #4CAF50;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.global-settings h3 {
+    color: #2E7D32;
+    margin-top: 0;
+}
+
+.global-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.global-controls button {
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.global-defaults {
+    background-color: #f0f8ff;
+    border: 2px solid #4CAF50;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.global-defaults h3 {
+    color: #2E7D32;
+    margin-top: 0;
+}
+
+.help-text {
+    color: #666;
+    font-style: italic;
+    margin: 10px 0;
+    font-size: 0.9em;
+}
+
+.building-defaults,
+.elevator-defaults {
+    background: white;
+    padding: 15px;
+    border-radius: 4px;
+    margin: 15px 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.building-defaults h4,
+.elevator-defaults h4 {
+    color: #2E7D32;
+    margin-top: 0;
+}
+
+.global-override-control {
+    background: #fff3e0;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    border: 1px solid #ffe0b2;
+}
+
+.global-override-control label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: bold;
+    color: #f57c00;
+}
+
+.global-override-control input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+.global-override-control .help-text {
+    margin: 10px 0 0;
+    color: #666;
+    font-style: italic;
+}
+
+.specific-settings {
+    border-top: 2px solid #ccc;
+    padding-top: 20px;
+}
+
+.number-of-buildings {
+    padding: 15px;
+    background: #f5f5f5;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}

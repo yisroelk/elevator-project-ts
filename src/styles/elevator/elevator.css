@@ -1,0 +1,30 @@
+.elevator-container {
+    display: flex;
+    gap: 10px;
+    height: 100%;
+    position: relative;
+    min-width: 200px;
+}
+
+.elevator {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    background: url('../../assets/elv.png') no-repeat center center;
+    background-size: contain;
+    bottom: 0;
+    cursor: pointer;
+}
+
+.elevator .info-icon {
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.elevator:hover .info-icon {
+    opacity: 1;
+}

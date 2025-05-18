@@ -14,6 +14,7 @@ module.exports = {
             {
                 test: /\.css$/,
                 use: ['style-loader', 'css-loader'],
+                sideEffects: true
             },
             {
                 test: /\.(mp3|png)$/,
@@ -26,7 +27,7 @@ module.exports = {
         ],
     },
     resolve: {
-        extensions: ['.tsx', '.ts', '.js'],
+        extensions: ['.tsx', '.ts', '.js', '.css'],
         modules: [path.resolve(__dirname, 'src'), 'node_modules'],
     },
     output: {

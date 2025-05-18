@@ -1,6 +1,6 @@
 import { SettingsManager } from '../core/SettingsManager';
 import { DomUtils } from '../utils/DomUtils';
-import { CSS_CLASSES } from '../styles/classes';
+import { CSS_CLASSES } from '../styles/cssclasses';
 
 function createElevatorConfig(buildingIndex: number, elevatorIndex: number, settings: any) {
     const buildingConfig = settings.buildingConfigs?.[buildingIndex];
