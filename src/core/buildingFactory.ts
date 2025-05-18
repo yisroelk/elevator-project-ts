@@ -1,7 +1,7 @@
 import { Building } from './building';
 import { Elevator } from './elevator';
 import { Floor } from './floor';
-import { BuildingSettings } from '../types/BuildingSettings';
+import { BuildingSettings, ElevatorConfig } from '../types/BuildingSettings';
 import { BuildingFactoryBase } from './abstractBuildingFactory';
 
 /**
@@ -12,8 +12,8 @@ export class StandardBuildingFactory extends BuildingFactoryBase {
         return new Building(settings);
     }
 
-    createElevator(id: number, settings: BuildingSettings): Elevator {
-        return new Elevator(id, settings);
+    createElevator(id: number, settings: BuildingSettings, elevatorConfig?: ElevatorConfig): Elevator {
+        return new Elevator(id, settings, elevatorConfig);
     }
 
     createFloor(number: number): Floor {

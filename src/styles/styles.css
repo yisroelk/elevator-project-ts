@@ -53,7 +53,7 @@ html, body {
 }
 
 .floor {
-    height: var(--floor-height, 110px);
+    height: var(--floor-height-building-0, 110px);
     position: relative;
     display: flex;
     align-items: center;
@@ -93,6 +93,20 @@ html, body {
     background: url('../assets/elv.png') no-repeat center center;
     background-size: contain;
     bottom: 0;
+    cursor: pointer;
+}
+
+.elevator .info-icon {
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.elevator:hover .info-icon {
+    opacity: 1;
 }
 
 .floor-button {
@@ -110,10 +124,26 @@ html, body {
 }
 
 .countdown {
-    font-size: 20px;  /* Increased from 14px */
-    color: #000000;
+    font-size: 20px;
+    color: #ffffff;  /* Changed to white for better contrast */
     font-weight: bold;
     display: inline-block;
+    margin-left: 8px;
+    min-width: 60px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);  /* Added text shadow for better readability */
+    background: rgba(0,0,0,0.6);  /* Semi-transparent black background */
+    padding: 2px 8px;  /* Added padding around the text */
+    border-radius: 4px;  /* Rounded corners */
+}
+
+.countdown:empty {
+    display: none;  /* Hide countdown when empty */
+}
+
+.countdown:not(:empty)::after {
+    content: 's';
+    font-size: 16px;
+    opacity: 0.9;  /* Increased opacity for better visibility */
 }
 
 .settings-panel {
@@ -121,6 +151,9 @@ html, body {
     background: #f5f5f5;
     border-radius: 5px;
     min-width: 300px;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
     position: fixed;
     top: 50%;
     left: 50%;
@@ -235,4 +268,272 @@ input:focus-visible {
     align-items: center;
     gap: 10px;
     min-width: 120px;
+}
+
+.building-config {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 15px;
+    margin: 15px 0;
+    background: #fff;
+}
+
+.building-config h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 1.1em;
+}
+
+.elevator-configs {
+    margin-top: 15px;
+    padding-left: 15px;
+    border-left: 2px solid #ccc;
+}
+
+.elevator-config {
+    background: #f9f9f9;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 4px;
+}
+
+.elevator-config h4 {
+    margin: 0 0 10px 0;
+    color: #444;
+    font-size: 1em;
+}
+
+.elevator-config label {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.elevator-config input {
+    width: calc(100% - 10px);
+    margin: 5px 0 10px;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+/* Add building-specific floor height classes */
+.building-0 .floor { height: var(--floor-height-building-0, 110px); }
+.building-1 .floor { height: var(--floor-height-building-1, 110px); }
+.building-2 .floor { height: var(--floor-height-building-2, 110px); }
+.building-3 .floor { height: var(--floor-height-building-3, 110px); }
+
+.global-settings {
+    background-color: #f0f8ff;
+    border: 2px solid #4CAF50;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.global-settings h3 {
+    color: #2E7D32;
+    margin-top: 0;
+}
+
+.global-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.global-controls button {
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.apply-global {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.apply-global:hover {
+    background-color: #45a049;
+}
+
+.clear-global {
+    background-color: #f44336;
+    color: white;
+}
+
+.clear-global:hover {
+    background-color: #da190b;
+}
+
+.specific-settings {
+    border-top: 2px solid #ccc;
+    padding-top: 20px;
+}
+
+.number-of-buildings {
+    padding: 15px;
+    background: #f5f5f5;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.global-defaults {
+    background-color: #f0f8ff;
+    border: 2px solid #4CAF50;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.global-defaults h3 {
+    color: #2E7D32;
+    margin-top: 0;
+}
+
+.help-text {
+    color: #666;
+    font-style: italic;
+    margin: 10px 0;
+    font-size: 0.9em;
+}
+
+.building-defaults,
+.elevator-defaults {
+    background: white;
+    padding: 15px;
+    border-radius: 4px;
+    margin: 15px 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.building-defaults h4,
+.elevator-defaults h4 {
+    color: #2E7D32;
+    margin-top: 0;
+}
+
+.global-override-control {
+    background: #fff3e0;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    border: 1px solid #ffe0b2;
+}
+
+.global-override-control label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: bold;
+    color: #f57c00;
+}
+
+.global-override-control input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+.global-override-control .help-text {
+    margin: 10px 0 0;
+    color: #666;
+    font-style: italic;
+}
+
+/* Info icon and tooltip styles */
+.info-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #4CAF50;
+    color: white;
+    font-style: italic;
+    font-family: serif;
+    margin-left: 10px;
+    cursor: help;
+    font-size: 14px;
+    position: relative;
+}
+
+/* Update tooltip styles */
+.tooltip {
+    visibility: hidden;
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: sans-serif;
+    width: 220px;
+    z-index: 100;
+    white-space: pre;
+    font-weight: normal;
+}
+
+.info-icon:hover .tooltip {
+    visibility: visible;
+}
+
+/* Position tooltips */
+.building-title .info-icon .tooltip {
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 10px;
+}
+
+.elevator .info-icon .tooltip {
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 10px;
+}
+
+/* Update tooltip arrows */
+.tooltip::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 5px;
+    border-style: solid;
+}
+
+.building-title .info-icon .tooltip::after {
+    top: -10px;
+    border-color: transparent transparent rgba(0, 0, 0, 0.8) transparent;
+}
+
+.elevator .info-icon .tooltip::after {
+    top: 100%;
+    border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+}
+
+/* Tooltip title styling */
+.tooltip-title {
+    font-size: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    margin-bottom: 8px;
+    padding-bottom: 5px;
+}
+
+/* Tooltip content styling */
+.tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    margin: 3px 0;
+}
+
+.tooltip-label {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.tooltip-value {
+    text-align: right;
 }

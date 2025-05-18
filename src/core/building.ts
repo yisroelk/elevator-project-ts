@@ -28,13 +28,13 @@ export class Building extends EventEmitter<BuildingEventMap> {
     }
 
     private validateSettings(settings: BuildingSettings): void {
-        if (settings.numberOfFloors < 2) {
+        if (settings.defaultBuildingConfig.numberOfFloors < 2) {
             throw new ValidationError('Building must have at least 2 floors');
         }
-        if (settings.numberOfElevators < 1) {
+        if (settings.defaultBuildingConfig.numberOfElevators < 1) {
             throw new ValidationError('Building must have at least 1 elevator');
         }
-        if (settings.floorHeight < 50) {
+        if (settings.defaultBuildingConfig.floorHeight < 50) {
             throw new ValidationError('Floor height must be at least 50 pixels');
         }
     }
@@ -43,7 +43,7 @@ export class Building extends EventEmitter<BuildingEventMap> {
      * Adds a new elevator to the building's elevator system
      */
     addElevator(elevator: Elevator) {
-        if (this.elevators.length >= this.settings.numberOfElevators) {
+        if (this.elevators.length >= this.settings.defaultBuildingConfig.numberOfElevators) {
             throw new ValidationError('Maximum number of elevators reached');
         }
         this.elevators.push(elevator);
@@ -61,7 +61,7 @@ export class Building extends EventEmitter<BuildingEventMap> {
      * Adds a new floor to the building
      */
     addFloor(floor: Floor) {
-        if (this.floors.length >= this.settings.numberOfFloors) {
+        if (this.floors.length >= this.settings.defaultBuildingConfig.numberOfFloors) {
             throw new ValidationError('Maximum number of floors reached');
         }
         this.floors.push(floor);

@@ -1,12 +1,12 @@
 import { Elevator } from './elevator';
-import { BuildingSettings } from '../types/BuildingSettings';
+import { BuildingSettings, ElevatorConfig } from '../types/BuildingSettings';
 
 export class ExpressElevator extends Elevator {
     private readonly EXPRESS_SPEED_MULTIPLIER = 2;
     private readonly EXPRESS_MODE_THRESHOLD = 5; // Minimum floor difference to use express mode
 
-    constructor(id: number, settings: BuildingSettings) {
-        super(id, settings);
+    constructor(id: number, settings: BuildingSettings, elevatorConfig?: ElevatorConfig) {
+        super(id, settings, elevatorConfig);
     }
 
     /**
@@ -33,11 +33,11 @@ export class ExpressElevator extends Elevator {
         if (this.currentDestination !== null) {
             const floorDifference = Math.abs(this.currentFloor - this.currentDestination);
             if (floorDifference >= this.EXPRESS_MODE_THRESHOLD) {
-                // Temporarily modify settings for faster movement
-                const originalFloorPassingTime = this.settings.floorPassingTime;
-                this.settings.floorPassingTime /= this.EXPRESS_SPEED_MULTIPLIER;
+                // Temporarily modify elevator config for faster movement
+                const originalFloorPassingTime = this.elevatorConfig.floorPassingTime;
+                this.elevatorConfig.floorPassingTime /= this.EXPRESS_SPEED_MULTIPLIER;
                 super.updatePosition();
-                this.settings.floorPassingTime = originalFloorPassingTime;
+                this.elevatorConfig.floorPassingTime = originalFloorPassingTime;
                 return;
             }
         }

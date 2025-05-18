@@ -15,9 +15,8 @@ import { Floor } from './core/floor';
 /**
  * Gets the appropriate factory based on settings
  */
-function getFactory(): BuildingFactoryBase {
-    const settings = SettingsManager.getInstance().getSettings();
-    return settings.factoryType === 'highrise' ?
+function getFactory(factoryType: 'standard' | 'highrise'): BuildingFactoryBase {
+    return factoryType === 'highrise' ?
         new HighRiseBuildingFactory() :
         new BuildingFactory();
 }
@@ -26,9 +25,17 @@ function getFactory(): BuildingFactoryBase {
  * Reinitializes all buildings with current settings
  */
 function reinitializeBuilding() {
-    const factory = getFactory();
-    const buildings = factory.createBuildings();
-    createUI(buildings);
+    try {
+        console.log('Creating buildings...');
+        const settings = SettingsManager.getInstance().getSettings();
+        const factory = getFactory(settings.defaultBuildingConfig.factoryType);
+        const buildings = factory.createBuildings();
+        console.log('Creating UI...');
+        createUI(buildings);
+        console.log('UI creation complete');
+    } catch (error) {
+        console.error('Error in reinitializeBuilding:', error);
+    }
 }
 
 function updateFloorUI(floorDiv: HTMLElement, floor: Floor) {
@@ -66,25 +73,63 @@ function createUI(buildings: Building[]) {
 
     buildings.forEach((building, buildingIndex) => {
         const settings = building.getSettings();
-        // Set the floor height CSS variable
-        document.documentElement.style.setProperty('--floor-height', `${settings.floorHeight}px`);
+        const buildingConfig = settings.buildingConfigs?.[buildingIndex];
+
+        // Use building-specific floor height or default
+        const floorHeight = buildingConfig?.floorHeight || settings.defaultBuildingConfig.floorHeight;
+        document.documentElement.style.setProperty(`--floor-height-building-${buildingIndex}`, `${floorHeight}px`);
 
         const buildingContainer = DomUtils.createElement('div', CSS_CLASSES.BUILDING_CONTAINER);
         const buildingTitle = DomUtils.createElement('h2', CSS_CLASSES.BUILDING_TITLE);
-        buildingTitle.textContent = `Building ${buildingIndex + 1}`;
+
+        // Create title container to hold both text and info icon
+        const titleText = document.createTextNode(`Building ${buildingIndex + 1}`);
+        buildingTitle.appendChild(titleText);
+
+        // Add building info icon with new tooltip structure
+        const buildingInfoIcon = DomUtils.createElement('span', 'info-icon');
+        buildingInfoIcon.textContent = 'i';
+        const buildingTooltip = DomUtils.createElement('div', 'tooltip');
+
+        const buildingTitleDiv = DomUtils.createElement('div', 'tooltip-title');
+        buildingTitleDiv.textContent = `Building ${buildingIndex + 1}`;
+
+        const buildingContent = [
+            ['Type', buildingConfig?.factoryType || 'standard'],
+            ['Number of Floors', String(buildingConfig?.numberOfFloors || settings.defaultBuildingConfig.numberOfFloors)],
+            ['Number of Elevators', String(buildingConfig?.numberOfElevators || settings.defaultBuildingConfig.numberOfElevators)],
+            ['Floor Height', `${floorHeight}px`]
+        ].map(([label, value]) => {
+            const row = DomUtils.createElement('div', 'tooltip-row');
+            const labelSpan = DomUtils.createElement('span', 'tooltip-label');
+            const valueSpan = DomUtils.createElement('span', 'tooltip-value');
+            labelSpan.textContent = String(label);
+            valueSpan.textContent = String(value);
+            row.append(labelSpan, valueSpan);
+            return row;
+        });
+
+        buildingTooltip.appendChild(buildingTitleDiv);
+        buildingContent.forEach(row => buildingTooltip.appendChild(row));
+        buildingInfoIcon.appendChild(buildingTooltip);
+        buildingTitle.appendChild(buildingInfoIcon);
+
         buildingContainer.appendChild(buildingTitle);
 
         const buildingWrapper = DomUtils.createElement('div', CSS_CLASSES.BUILDING_WRAPPER);
-        const buildingDiv = DomUtils.createElement('div', CSS_CLASSES.BUILDING, {
+        const buildingDiv = DomUtils.createElement('div', `${CSS_CLASSES.BUILDING} building-${buildingIndex}`, {
             'data-building-id': buildingIndex.toString()
         });
 
-        // Calculate total height
-        const totalHeight = settings.floorHeight * settings.numberOfFloors;
+        // Calculate total height based on floor height
+        const totalHeight = floorHeight * settings.defaultBuildingConfig.numberOfFloors;
         DomUtils.setStyles(buildingDiv, { height: `${totalHeight}px` });
 
         const elevatorContainer = DomUtils.createElement('div', CSS_CLASSES.ELEVATOR_CONTAINER);
-        DomUtils.setStyles(elevatorContainer, { height: `${totalHeight}px`, width: `${settings.numberOfElevators * 70}px` });
+        DomUtils.setStyles(elevatorContainer, {
+            height: `${totalHeight}px`,
+            width: `${settings.defaultBuildingConfig.numberOfElevators * 70}px` // 70px per elevator to prevent overlap
+        });
 
         const floorsToDisplay = [...building.getFloors()].reverse();
 
@@ -98,7 +143,7 @@ function createUI(buildings: Building[]) {
 
             floor.on(BuildingEvents.COUNTDOWN_CHANGED, (data) => {
                 if (countdown) {
-                    countdown.textContent = data.timeLeft > 0 ? `(${data.timeLeft.toFixed(1)}s)` : '';
+                    countdown.textContent = data.timeLeft > 0 ? `${data.timeLeft.toFixed(1)}` : '';
                 }
             });
 
@@ -117,6 +162,7 @@ function createUI(buildings: Building[]) {
             buildingDiv.appendChild(floorDiv);
         });
 
+        // Elevator creation with info icons
         const elevatorToDisplay = [...building.getElevators()];
 
         elevatorToDisplay.forEach((elevator, displayIndex) => {
@@ -124,6 +170,35 @@ function createUI(buildings: Building[]) {
             DomUtils.setStyles(elevatorDiv, { left: `${displayIndex * 70}px` });
             elevatorDiv.dataset.index = displayIndex.toString();
             elevatorDiv.dataset.elevatorNumber = elevator.id.toString();
+
+            // Add elevator info icon with new tooltip structure
+            const elevatorInfoIcon = DomUtils.createElement('span', 'info-icon');
+            elevatorInfoIcon.textContent = 'i';
+            const elevatorTooltip = DomUtils.createElement('div', 'tooltip');
+
+            const elevatorTitleDiv = DomUtils.createElement('div', 'tooltip-title');
+            elevatorTitleDiv.textContent = `Elevator ${displayIndex + 1}`;
+
+            const elevatorConfig = elevator.getElevatorConfig();
+            const elevatorContent = [
+                ['Type', buildingConfig?.factoryType === 'highrise' ? 'Express' : 'Standard'],
+                ['Stop Delay', `${elevatorConfig.stopDelay}s`],
+                ['Floor Passing Time', `${elevatorConfig.floorPassingTime}s`]
+            ].map(([label, value]) => {
+                const row = DomUtils.createElement('div', 'tooltip-row');
+                const labelSpan = DomUtils.createElement('span', 'tooltip-label');
+                const valueSpan = DomUtils.createElement('span', 'tooltip-value');
+                labelSpan.textContent = label;
+                valueSpan.textContent = String(value);
+                row.append(labelSpan, valueSpan);
+                return row;
+            });
+
+            elevatorTooltip.appendChild(elevatorTitleDiv);
+            elevatorContent.forEach(row => elevatorTooltip.appendChild(row));
+            elevatorInfoIcon.appendChild(elevatorTooltip);
+            elevatorDiv.appendChild(elevatorInfoIcon);
+
             elevatorContainer.appendChild(elevatorDiv);
         });
 
@@ -142,7 +217,6 @@ function createUI(buildings: Building[]) {
         });
 
         building.on(BuildingEvents.ELEVATOR_REQUESTED, (data) => {
-            console.log('§§§§§§§§ Elevator requested:', data);
             const floor = building.getFloors()[data.floor];
             if (!floor) return;
             floor.pressButton();
@@ -154,7 +228,8 @@ function createUI(buildings: Building[]) {
                 `div.elevator[data-elevator-number="${data.elevator}"]`
             );
             if (!elevatorDiv) return;
-            updateElevatorPosition(elevatorDiv as HTMLElement, data.position, settings.floorHeight);
+
+            updateElevatorPosition(elevatorDiv as HTMLElement, data.position, floorHeight);
         });
     });
 
@@ -172,7 +247,13 @@ function createUI(buildings: Building[]) {
  * Creates styles, building instance, and sets up the UI
  */
 function init() {
-    reinitializeBuilding();
+    try {
+        console.log('Initializing elevator simulation...');
+        reinitializeBuilding();
+        console.log('Initialization complete');
+    } catch (error) {
+        console.error('Failed to initialize:', error);
+    }
 }
 
 // Start the application when the DOM is fully loaded

@@ -17,7 +17,11 @@ module.exports = {
             },
             {
                 test: /\.(mp3|png)$/,
-                type: 'asset/resource'
+                type: 'asset/resource',
+                generator: {
+                    filename: 'assets/[name][ext]',
+                    publicPath: '/'
+                }
             }
         ],
     },

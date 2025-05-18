@@ -1,4 +1,4 @@
-import { BuildingSettings } from '../types/BuildingSettings';
+import { BuildingSettings, ElevatorConfig } from '../types/BuildingSettings';
 import { EventEmitter } from '../utils/EventEmitter';
 import { BuildingEvents } from '../types/BuildingEvents';
 import { BuildingEventMap } from '../types/BuildingTypes';
@@ -29,6 +29,7 @@ export class Elevator extends EventEmitter<ElevatorEventMap> {
     private state: ElevatorState = ElevatorState.IDLE;
     private lastIntendedFloor: number = 0;
     protected settings: BuildingSettings;
+    protected elevatorConfig: ElevatorConfig;
     currentDestination: number | null = null;
     previousFloor: number | null = null;
     timeStartFloorStop: number = 0;
@@ -43,13 +44,24 @@ export class Elevator extends EventEmitter<ElevatorEventMap> {
 
     private timeouts: number[] = [];
 
-    constructor(id: number, settings: BuildingSettings) {
+    constructor(id: number, settings: BuildingSettings, elevatorConfig?: ElevatorConfig) {
         super();
         this.id = id;
         this.settings = settings;
+        // Always use provided elevatorConfig if available, otherwise use default
+        this.elevatorConfig = {
+            ...settings.defaultElevatorConfig,
+            ...(elevatorConfig || {})
+        };
         this.exactPosition = 0;
     }
 
+    /**
+     * Gets the elevator's configuration settings
+     */
+    getElevatorConfig(): ElevatorConfig {
+        return this.elevatorConfig;
+    }
 
     /**
      * Calculates time until reaching a requested floor, considering current movement and queue
@@ -65,21 +77,21 @@ export class Elevator extends EventEmitter<ElevatorEventMap> {
         // If elevator is moving, add remaining time to current destination
         if (this.state === ElevatorState.MOVING && this.currentDestination !== null && this.movementStartTime) {
             const remainingDistance = Math.abs(this.currentDestination - this.exactPosition);
-            const remainingTime = remainingDistance * this.settings.floorPassingTime * 1000;
+            const remainingTime = remainingDistance * this.elevatorConfig.floorPassingTime * 1000;
 
             // If this is the requested floor, don't include stop time
             if (requestedFloor !== undefined && this.currentDestination === requestedFloor) {
                 return totalTime + remainingTime;
             }
 
-            totalTime += remainingTime + this.settings.stopDelay * 1000;
+            totalTime += remainingTime + this.elevatorConfig.stopDelay * 1000;
             currentPosition = this.currentDestination;
         }
 
         // If elevator is stopping, add remaining stop time
         if (this.state === ElevatorState.STOPPING) {
             const timeSinceStopStart = now - this.timeStartFloorStop;
-            const stopDelay = this.settings.stopDelay * 1000;
+            const stopDelay = this.elevatorConfig.stopDelay * 1000;
             const remainingStopTime = Math.max(0, stopDelay - timeSinceStopStart);
             totalTime += remainingStopTime;
         }
@@ -87,7 +99,7 @@ export class Elevator extends EventEmitter<ElevatorEventMap> {
         // Calculate time through the queue
         for (const floor of this.targetFloors) {
             const distance = Math.abs(floor - currentPosition);
-            const transitTime = distance * this.settings.floorPassingTime * 1000;
+            const transitTime = distance * this.elevatorConfig.floorPassingTime * 1000;
 
             // If this is the requested floor, return time without stop delay
             if (requestedFloor !== undefined && floor === requestedFloor) {
@@ -95,7 +107,7 @@ export class Elevator extends EventEmitter<ElevatorEventMap> {
             }
 
             // For intermediate floors, include both transit and stop time
-            totalTime += transitTime + this.settings.stopDelay * 1000;
+            totalTime += transitTime + this.elevatorConfig.stopDelay * 1000;
             currentPosition = floor;
         }
 
@@ -103,7 +115,7 @@ export class Elevator extends EventEmitter<ElevatorEventMap> {
         if (requestedFloor !== undefined) {
             // Calculate time to requested floor from last position
             const finalDistance = Math.abs(requestedFloor - currentPosition);
-            const finalTransitTime = finalDistance * this.settings.floorPassingTime * 1000;
+            const finalTransitTime = finalDistance * this.elevatorConfig.floorPassingTime * 1000;
             return totalTime + finalTransitTime;
         }
 
@@ -159,7 +171,7 @@ export class Elevator extends EventEmitter<ElevatorEventMap> {
         const now = Date.now();
         const elapsedTime = (now - this.movementStartTime) / 1000;
         const totalDistance = Math.abs(this.currentDestination - this.previousFloor!);
-        const totalTime = totalDistance * this.settings.floorPassingTime;
+        const totalTime = totalDistance * this.elevatorConfig.floorPassingTime;
         const progress = Math.min(elapsedTime / totalTime, 1);
 
         // Calculate new position
@@ -232,7 +244,7 @@ export class Elevator extends EventEmitter<ElevatorEventMap> {
                     console.log(`All floors completed at ${new Date().toISOString()} elevator ${this.id}`);
                 }
             }
-        }, this.settings.stopDelay * 1000);
+        }, this.elevatorConfig.stopDelay * 1000);
 
         this.timeouts.push(stopTimeout);
     }

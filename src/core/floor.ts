@@ -22,7 +22,7 @@ export class Floor extends EventEmitter<FloorEventMap> {
     constructor(public readonly number: number) {
         super();
         // Initialize audio on creation but don't play it
-        this._audio = new Audio('/assets/ding.mp3');
+        this._audio = new Audio('/dist/assets/ding.mp3');
         this._audioLoaded = new Promise((resolve) => {
             this._audio.addEventListener('canplaythrough', () => resolve());
         });

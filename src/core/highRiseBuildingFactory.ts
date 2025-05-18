@@ -1,7 +1,7 @@
 import { BuildingFactoryBase } from './abstractBuildingFactory';
 import { Building } from './building';
 import { Floor } from './floor';
-import { BuildingSettings } from '../types/BuildingSettings';
+import { BuildingSettings, ElevatorConfig } from '../types/BuildingSettings';
 import { ExpressElevator } from './expressElevator';
 
 /**
@@ -9,12 +9,11 @@ import { ExpressElevator } from './expressElevator';
  */
 export class HighRiseBuildingFactory extends BuildingFactoryBase {
     createBuilding(settings: BuildingSettings): Building {
-        // Could extend Building class for high-rise specific features
         return new Building(settings);
     }
 
-    createElevator(id: number, settings: BuildingSettings): ExpressElevator {
-        return new ExpressElevator(id, settings);
+    createElevator(id: number, settings: BuildingSettings, elevatorConfig?: ElevatorConfig): ExpressElevator {
+        return new ExpressElevator(id, settings, elevatorConfig);
     }
 
     createFloor(number: number): Floor {
