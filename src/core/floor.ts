@@ -1,6 +1,6 @@
 import { EventEmitter } from '../utils/EventEmitter';
 import { BuildingEvents } from '../types/BuildingEvents';
-import { BuildingEventMap } from '../types/BuildingTypes';
+import { BuildingEventMap } from '../types/BuildingEvents';
 
 interface FloorEventMap {
     [BuildingEvents.COUNTDOWN_CHANGED]: BuildingEventMap[BuildingEvents.COUNTDOWN_CHANGED];

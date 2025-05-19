@@ -22,12 +22,10 @@ export class BuildingComponent {
         const buildingConfig = settings.buildingConfigs?.[this.buildingIndex];
         const floorHeight = buildingConfig?.floorHeight || settings.defaultBuildingConfig.floorHeight;
 
-        document.documentElement.style.setProperty(
-            `--floor-height-building-${this.buildingIndex}`,
-            `${floorHeight}px`
-        );
-
         const container = DomUtils.createElement('div', CSS_CLASSES.BUILDING_CONTAINER);
+        // Set floor height as a CSS variable scoped to this building container
+        container.style.setProperty('--floor-height', `${floorHeight}px`);
+
         const title = this.createBuildingTitle(settings, buildingConfig);
         container.appendChild(title);
 
@@ -142,6 +140,16 @@ export class BuildingComponent {
             floor.pressButton();
             floor.startCountdown(data.estimatedTime);
         });
+    }
+
+    private getFloorHeight(): number {
+        // Update to use new CSS variable
+        const container = this.buildingContainer.closest(`.${CSS_CLASSES.BUILDING_CONTAINER}`);
+        if (container) {
+            const style = getComputedStyle(container);
+            return parseInt(style.getPropertyValue('--floor-height')) || 110;
+        }
+        return 110; // fallback
     }
 
     getElement(): HTMLElement {

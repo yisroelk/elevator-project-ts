@@ -1,7 +1,7 @@
 import { BuildingSettings, ElevatorConfig } from '../types/BuildingSettings';
 import { EventEmitter } from '../utils/EventEmitter';
 import { BuildingEvents } from '../types/BuildingEvents';
-import { BuildingEventMap } from '../types/BuildingTypes';
+import { BuildingEventMap } from '../types/BuildingEvents';
 
 /**
  * Represents an elevator in the building

@@ -57,17 +57,17 @@ function createBuildingConfig(index: number, settings: any) {
 
             <label for="floorHeight-${index}">Floor Height (px)</label>
             <input type="number" id="floorHeight-${index}" class="floor-height" 
-                value="${config.floorHeight}" min="50" max="200" 
+                value="${config.floorHeight}" min="50" 
                 data-building-index="${index}">
 
             <label for="numberOfFloors-${index}">Number of Floors</label>
             <input type="number" id="numberOfFloors-${index}" class="floor-count" 
-                value="${config.numberOfFloors}" min="2" max="20" 
+                value="${config.numberOfFloors}" min="2" 
                 data-building-index="${index}">
             
             <label for="numberOfElevators-${index}">Number of Elevators</label>
             <input type="number" id="numberOfElevators-${index}" class="elevator-count" 
-                value="${config.numberOfElevators}" min="1" max="4" 
+                value="${config.numberOfElevators}" min="1" 
                 data-building-index="${index}">
 
             <div class="elevator-configs">
@@ -103,7 +103,7 @@ export function createSettingsPanel() {
         <div class="${CSS_CLASSES.SETTINGS_GROUP} number-of-buildings" role="form">
             <label for="numberOfBuildings">Number of Buildings</label>
             <input type="number" id="numberOfBuildings" value="${currentSettings.numberOfBuildings}" 
-                min="1" max="4" aria-describedby="buildings-desc">
+                min="1" aria-describedby="buildings-desc">
         </div>
 
         <div class="${CSS_CLASSES.SETTINGS_GROUP} global-defaults" role="form">
@@ -127,12 +127,12 @@ export function createSettingsPanel() {
                 <label for="defaultFloorHeight">Default Floor Height (px)</label>
                 <input type="number" id="defaultFloorHeight" 
                     value="${currentSettings.defaultBuildingConfig.floorHeight}" 
-                    min="50" max="200">
+                    min="50">
 
                 <label for="defaultNumberOfFloors">Default Number of Floors</label>
                 <input type="number" id="defaultNumberOfFloors" 
                     value="${currentSettings.defaultBuildingConfig.numberOfFloors}" 
-                    min="2" max="20">
+                    min="2">
 
                 <label for="defaultNumberOfElevators">Default Number of Elevators</label>
                 <input type="number" id="defaultNumberOfElevators" 
@@ -145,12 +145,12 @@ export function createSettingsPanel() {
                 <label for="defaultStopDelay">Default Stop Delay (seconds)</label>
                 <input type="number" id="defaultStopDelay" 
                     value="${currentSettings.defaultElevatorConfig.stopDelay}" 
-                    min="1" max="10" step="0.5">
+                    min="0.1" step="0.1">
 
                 <label for="defaultFloorPassingTime">Default Floor Passing Time (seconds)</label>
                 <input type="number" id="defaultFloorPassingTime" 
                     value="${currentSettings.defaultElevatorConfig.floorPassingTime}" 
-                    min="0.1" max="2" step="0.1">
+                    min="0.1" step="0.1">
             </div>
         </div>
 

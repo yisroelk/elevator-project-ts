@@ -57,8 +57,12 @@ export class ElevatorComponent {
     }
 
     private getFloorHeight(): number {
-        const style = getComputedStyle(document.documentElement);
-        return parseInt(style.getPropertyValue(`--floor-height-building-${this.buildingIndex}`)) || 110;
+        const buildingContainer = this.elevatorElement.closest('.building-container');
+        if (buildingContainer) {
+            const style = getComputedStyle(buildingContainer);
+            return parseInt(style.getPropertyValue('--floor-height')) || 110;
+        }
+        return 110; // fallback
     }
 
     getElement(): HTMLElement {

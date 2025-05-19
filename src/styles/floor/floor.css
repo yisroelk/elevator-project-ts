@@ -1,5 +1,5 @@
 .floor {
-    height: var(--floor-height-building-0, 110px);
+    height: var(--floor-height, 110px);
     position: relative;
     display: flex;
     align-items: center;
@@ -38,12 +38,6 @@
     gap: 10px;
     min-width: 120px;
 }
-
-/* Building-specific floor heights */
-.building-0 .floor { height: var(--floor-height-building-0, 110px); }
-.building-1 .floor { height: var(--floor-height-building-1, 110px); }
-.building-2 .floor { height: var(--floor-height-building-2, 110px); }
-.building-3 .floor { height: var(--floor-height-building-3, 110px); }
 
 .countdown {
     font-size: 20px;

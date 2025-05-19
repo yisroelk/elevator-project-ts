@@ -3,7 +3,7 @@ import { Floor } from './floor.js';
 import { BuildingSettings } from '../types/BuildingSettings.js';
 import { EventEmitter } from '../utils/EventEmitter';
 import { BuildingEvents } from '../types/BuildingEvents';
-import { BuildingEventMap } from '../types/BuildingTypes';
+import { BuildingEventMap } from '../types/BuildingEvents';
 
 export class ValidationError extends Error {
     constructor(message: string) {
